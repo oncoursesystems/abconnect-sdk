@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageId>OnCourse.ABConnect</PackageId>
+    <Company>OnCourse Systems For Education</Company>
+    <Authors>OnCourse Systems For Education</Authors>
+		<Product>Academic Benchmarks SDK for .NET</Product>
+		<Description>Academic Benchmarks API Client</Description>
+    <PackageProjectUrl>https://github.com/oncoursesystems/abconnect-sdk</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/oncoursesystems/abconnect-sdk</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <Copyright>Copyright (c) 2023 OnCourse Systems For Education</Copyright>
+    <LicenseUrl>https://licenses.nuget.org/MIT</LicenseUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>academic benchmarks academicbenchmarks abconnect instructure</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>instructure.png</PackageIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+    <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="7.0.5"/>
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0"/>
+    <PackageReference Include="Ardalis.GuardClauses" Version="4.0.1"/>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="instructure.png" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
