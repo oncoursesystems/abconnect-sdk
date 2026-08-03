@@ -1,0 +1,12 @@
+{
+  "id": "3e81b2f7-47ac-4d10-9f0b-5c6ad2938e71",
+  "type": "events",
+  "attributes": {
+    "seq": 702955,
+    "date_utc": "2026-07-28 15:09:33",
+    "change_type": "added",
+    "target": "document",
+    "guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+    "document_guid": "9D85340C-592E-11E6-A0F5-48E229C466BA"
+  }
+}

@@ -1,0 +1,35 @@
+The body AB Connect returns for a request carrying a bad signature.
+
+VERBATIM from a live probe, gate G-5 result in 01-sdk-v3.md section 12, run 2026-08-02 against devel
+partner sws:
+
+  a bad-signature request returned
+  401 {"errors":[{"status":"401","title":"Unauthorized","detail":"Signature is not authorized."}]}
+
+The file is that body, byte for byte, with nothing added and nothing reformatted. It is deliberately
+kept on one line the way the service sent it, because a test that pretty-prints a fixture is no longer
+testing the wire.
+
+Documented shape:
+  https://developerdocs.instructure.com/services/ab-connect/introduction/error-responses.md
+  which specifies JSON:API errors[] with source.pointer, source.parameter, detail, status, and title.
+  01-sdk-v3.md section 5.2 maps this shape onto ABConnectApiError.
+
+What a test must assert from it:
+  - ABConnectResponseMapper.ParseErrors returns exactly one ABConnectApiError.
+  - Status is the STRING "401", not the number 401. AB Connect sends it quoted, per JSON:API, and
+    ABConnectApiError.Status is string? for that reason.
+  - Title is "Unauthorized" and Detail is "Signature is not authorized.".
+  - SourcePointer and SourceParameter are both null: this body carries no "source" member at all, and
+    an absent member must read as null rather than as an empty string.
+  - A 401 response carrying this body maps to ABConnectAuthenticationException, whose Errors property
+    carries the parsed list.
+
+Why the Errors list matters here specifically, and not just as a nicety: section 5.2 records that AB
+Connect documents 401 as meaning bad credentials OR an unlicensed call ("It may be that your current
+license does not support the call you are making"). The two are only distinguishable by reading
+detail, so an exception that dropped the parsed errors would make them indistinguishable to the
+caller. That is why ABConnectRequestException.Errors exists and why it is never null.
+
+A fixture must never contain a partner id, a partner key, or a signature. This one does not: the
+service echoes no query back in an error body.

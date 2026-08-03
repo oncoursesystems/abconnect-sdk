@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Coverage settings for gate G-9: SDK line coverage of at least 85 percent, excluding generated
+  serialization code.
+
+  The Include filter is what makes the report's top-level line-rate mean "the SDK's line rate" and
+  nothing else, so the CI floor can be read straight off the root element of the Cobertura report
+  without picking through per-package attributes. The test assembly is excluded by coverlet's own
+  default (IncludeTestAssembly is false) and by this filter as well.
+
+  Generated serialization code is excluded twice over, by attribute and by file, because the
+  System.Text.Json source generator emits a large volume of partial-class metadata that no test
+  authors and no reviewer reads. Counting it would inflate the measured percentage while telling
+  nobody anything about the SDK's own code.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[OnCourse.ABConnect]*</Include>
+          <Exclude>[OnCourse.ABConnect.Tests]*</Exclude>
+          <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute,ObsoleteAttribute</ExcludeByAttribute>
+          <ExcludeByFile>**/*.g.cs,**/*.Generated.cs,**/obj/**</ExcludeByFile>
+          <SkipAutoProps>true</SkipAutoProps>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <DeterministicReport>false</DeterministicReport>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

@@ -1,0 +1,30 @@
+One standards resource object carrying every field name in StandardFieldSet.Snapshot.
+
+Field names and payload structure:
+  https://developerdocs.instructure.com/services/ab-connect/introduction/requesting-additional-properties.md
+  (the full-fields worked example, which is also where "standard_type": "objective" and
+  "date_deleted_utc": null come from)
+  https://developerdocs.instructure.com/services/ab-connect/introduction/how-to.md
+  (the hierarchy-walking examples, source of parent and children in a fields[standards] list)
+  01-sdk-v3.md section 5.4, the Snapshot field list.
+
+Verbatim from a live sample:
+  number.root_enhanced = "WV.CCRS.SOC.9-12.PF.SS.C.33.b", quoted in 01-sdk-v3.md section 7.4 and in
+  the gate G-2 result in section 12, run 2026-08-02 against devel partner sws. enhanced and
+  prefix_enhanced are set to the same value because G-2 observed them character-for-character
+  identical.
+  document.guid = "9D85340C-592E-11E6-A0F5-48E229C466BA", the document GUID used by gate G-3.
+
+Assembled for this fixture, not observed live: the standard's own GUID, the section, grade,
+publication, region, and authority GUIDs, all descriptions, and the year fields. They exist to give
+each model member a distinguishable value.
+
+Deliberate properties of this fixture:
+  - education_levels.grades is out of array order (11, 9, 12, 10) so that a test of
+    EducationLevels.Lowest and .Highest fails if the implementation trusts array order instead of the
+    documented seq.
+  - number.alternate is absent, per the G-2 resolution that drops it from the model and from Snapshot.
+  - date_modified_utc uses AB Connect's space-separated "yyyy-MM-dd HH:mm:ss" form, which
+    System.Text.Json cannot parse without ABConnectDateTimeConverter (defect 10).
+  - relationships nest each reference in a JSON:API "data" wrapper, which
+    ABRelationshipRefConverter flattens.

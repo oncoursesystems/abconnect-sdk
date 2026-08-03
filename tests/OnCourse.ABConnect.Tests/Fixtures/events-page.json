@@ -1,0 +1,118 @@
+{
+  "links": {
+    "self": "https://api.abconnect.instructure.com/rest/v4.1/events?limit=100&offset=0&filter%5Bevents%5D=%28seq%20GT%20702954%29&sort%5Bevents%5D=seq&fields%5Bevents%5D=seq%2Cdate_utc%2Cchange_type%2Ctarget%2Cguid%2Cdocument_guid%2Csection_guid%2Caffected_properties%2Cstandard%2Cnondeliverable_standard%2Cdeleted_standard",
+    "first": "https://api.abconnect.instructure.com/rest/v4.1/events?limit=100&offset=0",
+    "prev": null,
+    "next": null,
+    "last": "https://api.abconnect.instructure.com/rest/v4.1/events?limit=100&offset=0"
+  },
+  "meta": {
+    "limit": 100,
+    "offset": 0,
+    "count": 5,
+    "took": 33
+  },
+  "data": [
+    {
+      "id": "3e81b2f7-47ac-4d10-9f0b-5c6ad2938e71",
+      "type": "events",
+      "attributes": {
+        "seq": 702955,
+        "date_utc": "2026-07-28 15:09:33",
+        "change_type": "added",
+        "target": "document",
+        "guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+        "document_guid": "9D85340C-592E-11E6-A0F5-48E229C466BA"
+      }
+    },
+    {
+      "id": "0c9a4f16-6b21-4c8e-9a3f-2d5e7b1c8a04",
+      "type": "events",
+      "attributes": {
+        "seq": 703118,
+        "date_utc": "2026-07-29 03:14:07",
+        "change_type": "reordered",
+        "target": "section",
+        "guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+        "document_guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+        "section_guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+        "affected_properties": [
+          { "name": "section.seq", "previous_value": 22, "new_value": 19 }
+        ]
+      },
+      "relationships": {
+        "standard": { "data": {} },
+        "nondeliverable_standard": { "data": {} },
+        "deleted_standard": { "data": {} }
+      }
+    },
+    {
+      "id": "5f2b81ad-9c40-4f77-8e51-6a0c39d7be12",
+      "type": "events",
+      "attributes": {
+        "seq": 703204,
+        "date_utc": "2026-07-29 11:48:52",
+        "change_type": "updated numbering",
+        "target": "standard",
+        "guid": "26998816-1A35-11EB-BB5B-0E20088BB29A",
+        "document_guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+        "section_guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+        "affected_properties": [
+          { "name": "number.raw", "previous_value": "a.", "new_value": "MU:CT.HSAdv.Pr4.a" }
+        ]
+      },
+      "relationships": {
+        "standard": {
+          "data": { "type": "standards", "id": "26998816-1a35-11eb-bb5b-0e20088bb29a" }
+        },
+        "nondeliverable_standard": { "data": {} },
+        "deleted_standard": { "data": {} }
+      }
+    },
+    {
+      "id": "b4e7d0c3-2f18-4a95-a7d6-91c3e5480f6b",
+      "type": "events",
+      "attributes": {
+        "seq": 703311,
+        "date_utc": "2026-07-30 06:02:19",
+        "change_type": "deleted",
+        "target": "standard",
+        "guid": "26998816-1A35-11EB-BB5B-0E20088BB29A",
+        "document_guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+        "section_guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+        "affected_properties": []
+      },
+      "relationships": {
+        "standard": {
+          "data": { "type": "standards", "id": "26998816-1a35-11eb-bb5b-0e20088bb29a" }
+        },
+        "nondeliverable_standard": { "data": {} },
+        "deleted_standard": { "data": {} }
+      }
+    },
+    {
+      "id": "a17c6e58-3d92-4b06-bf24-c8071e5a9d33",
+      "type": "events",
+      "attributes": {
+        "seq": 703486,
+        "date_utc": "2026-07-31 22:37:44",
+        "change_type": "updated metadata",
+        "target": "standard",
+        "guid": "5C235A52-06EE-4DD7-A679-993947C1CFDF",
+        "document_guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+        "section_guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+        "affected_properties": [
+          { "name": "statement.descr", "previous_value": "Analyze the role of personal finance.", "new_value": "Analyze the role of personal finance in a consumer economy." },
+          { "name": "level", "previous_value": 3, "new_value": 4 }
+        ]
+      },
+      "relationships": {
+        "standard": { "data": {} },
+        "nondeliverable_standard": {
+          "data": { "type": "standards", "id": "5c235a52-06ee-4dd7-a679-993947c1cfdf" }
+        },
+        "deleted_standard": { "data": {} }
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "count": 1163,
+    "took": 41,
+    "facets": [
+      {
+        "facet": "document.publication.authorities",
+        "count": 2,
+        "details": [
+          {
+            "count": 1163,
+            "data": {
+              "guid": "6A9E4C88-592E-11E6-A0F5-48E229C466BA",
+              "acronym": "WVDE",
+              "descr": "West Virginia Department of Education"
+            }
+          },
+          {
+            "count": 47,
+            "data": {
+              "guid": "6A9E4C89-592E-11E6-A0F5-48E229C466BA",
+              "acronym": "NGA",
+              "descr": "National Governors Association Center for Best Practices"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "data": []
+}

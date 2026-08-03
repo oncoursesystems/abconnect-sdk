@@ -1,0 +1,14 @@
+The body of a limit=0 standards request. VERBATIM, character for character, from the gate G-1 result
+in 01-sdk-v3.md section 12:
+
+  Result, run 2026-08-02 against devel partner sws: PASS. GET
+  https://api.abconnect.instructure.com/rest/v4.1/standards?limit=0&... returned HTTP 200 with
+  {"meta":{"count":1471199,"offset":0,"took":181,"limit":0}}
+
+Why this fixture matters more than its size suggests: there is no "data" member and no "links" member.
+ABPage<T> declares Data, Meta, and Links as required, so deserializing this body straight into
+ABPage<Standard> raises a JsonException for missing required members even though AB Connect answered
+correctly. This is the body that PageRequest.MetaOnly produces, and it is why the internal
+ABPageDocument<TResource> wire shape exists: it deserializes with every member optional and projects
+absent data to an empty list and absent links to an all-null PageLinks, preserving Invariant E1
+without turning a correct 200 into a format error.

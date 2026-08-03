@@ -1,0 +1,24 @@
+{
+  "id": "a17c6e58-3d92-4b06-bf24-c8071e5a9d33",
+  "type": "events",
+  "attributes": {
+    "seq": 703486,
+    "date_utc": "2026-07-31 22:37:44",
+    "change_type": "updated metadata",
+    "target": "standard",
+    "guid": "5C235A52-06EE-4DD7-A679-993947C1CFDF",
+    "document_guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+    "section_guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+    "affected_properties": [
+      { "name": "statement.descr", "previous_value": "Analyze the role of personal finance.", "new_value": "Analyze the role of personal finance in a consumer economy." },
+      { "name": "level", "previous_value": 3, "new_value": 4 }
+    ]
+  },
+  "relationships": {
+    "standard": { "data": {} },
+    "nondeliverable_standard": {
+      "data": { "type": "standards", "id": "5c235a52-06ee-4dd7-a679-993947c1cfdf" }
+    },
+    "deleted_standard": { "data": {} }
+  }
+}

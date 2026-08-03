@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Enabled so IDE0005 (unnecessary usings) runs on build; CS1591 is suppressed because test
+         members do not need XML documentation the way the shipped public surface does. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CA2007 and xUnit1030 are in direct conflict inside a test project: CA2007 demands
+         ConfigureAwait on every await, xUnit1030 forbids ConfigureAwait(false) in a test method
+         because it bypasses the runner's parallelization limits. The repo .editorconfig relaxes
+         CA2007 for directories named "test" but not "tests", so it is relaxed here instead. There is
+         no synchronization context under the xUnit runner, which is the deadlock CA2007 guards
+         against, so nothing is lost. Production code in src/ keeps the rule as an error. -->
+    <NoWarn>$(NoWarn);CS1591;CA2007</NoWarn>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>OnCourse.ABConnect.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.10.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.61" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/OnCourse.ABConnect/OnCourse.ABConnect.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The whole tree, not just *.json: every payload has a .source sibling recording its
+         provenance, and one fixture is a non-JSON gateway page. -->
+    <Content Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

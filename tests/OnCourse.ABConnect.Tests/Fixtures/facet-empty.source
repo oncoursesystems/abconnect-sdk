@@ -1,0 +1,33 @@
+A facet response where the facet exists and has no values: AB Connect answered, and nothing matched.
+
+ASSEMBLED to the documented facet shape; see facet-authorities.source for the structure and the vendor
+citations. Kept on one line, like standards-meta-only.json, because a limit=0 body is short enough to
+read as sent.
+
+This is the Invariant E1 fixture for facets. Restating the invariant from 01-sdk-v3.md section 5.5:
+for every method on IABConnectClient and IABConnectFeed, the method either returns a non-null value
+that was deserialized from a 2xx response body, or it throws; it never returns null, and it never
+returns a default-constructed envelope.
+
+What a test must assert from it:
+  - GetDocumentFacetAsync returns a non-null ABFacet with ReportedCount 0 and Values.Count 0. It does
+    not return null, and it does not throw. An empty facet means the query matched nothing, which is an
+    answer, not a failure.
+  - IsTruncated is false: 0 is not greater than 0.
+  - FacetName is still "document". The name survives an empty result, so a caller logging the facet it
+    asked about still has it.
+
+Three adjacent cases the projection also has to answer, none of which needs its own file because each
+is a one-line literal in the test:
+  - "facets": [] (the array present and empty) projects to the same zero-count facet.
+  - No "facets" member at all projects to the same zero-count facet.
+  - No "meta" block at all projects to the same zero-count facet.
+All three are AB Connect declining to report a facet, which is different from a body that could not be
+read at all; that case is ABConnectResponseFormatException and belongs to the response mapper, not
+here.
+
+Note the asymmetry with the paged shape, which is deliberate. ABPageDocument.ToPageOrNull returns NULL
+for a body with no meta block, so the caller raises ABConnectResponseFormatException, because a list
+response without meta.count is not a list response and inventing a count would corrupt the completeness
+checks in section 6.2. A facet response with no facets is merely a facet with no values. Counts drive a
+paging walk; they do not drive a facet, which is never paged.

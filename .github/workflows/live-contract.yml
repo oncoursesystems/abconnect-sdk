@@ -1,0 +1,109 @@
+name: Live Contract Gates
+
+# The live contract tests for gates G-1 through G-5 and G-8 in the SDK v3 specification. They talk to
+# AB Connect over the network with devel partner credentials, read only, so they are deliberately kept
+# out of the CI workflow and run here instead: on demand, and weekly so that a vendor-side change to a
+# field name, an event shape, or the base address is caught before a release rather than during one.
+#
+# Required repository secrets:
+#   ABCONNECT_PARTNER_ID   the devel partner id
+#   ABCONNECT_PARTNER_KEY  the devel partner key
+#
+# The tests themselves report as skipped when the credentials are absent, so the "Verify credentials"
+# step below is what turns a missing or expired secret into a red build here rather than a job that
+# quietly skips everything it was scheduled to check.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_address:
+        description: "Override the AB Connect base address (blank uses the SDK default)"
+        required: false
+        type: string
+      document_guid:
+        description: "Override the document GUID gate G-3 probes (blank uses the recorded devel document)"
+        required: false
+        type: string
+  schedule:
+    # Mondays at 07:00 UTC.
+    - cron: "0 7 * * 1"
+
+jobs:
+  live:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore OnCourse.ABConnect.sln
+
+      - name: Build
+        run: dotnet build OnCourse.ABConnect.sln -c Release --no-restore -warnaserror
+
+      # Fail before spending a network call if the secrets are not configured, so the reason reads
+      # plainly in the job log rather than as six assertion failures.
+      - name: Verify credentials are present
+        env:
+          ABCONNECT_PARTNER_ID: ${{ secrets.ABCONNECT_PARTNER_ID }}
+          ABCONNECT_PARTNER_KEY: ${{ secrets.ABCONNECT_PARTNER_KEY }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "${ABCONNECT_PARTNER_ID}" ]  || missing="${missing} ABCONNECT_PARTNER_ID"
+          [ -n "${ABCONNECT_PARTNER_KEY}" ] || missing="${missing} ABCONNECT_PARTNER_KEY"
+          if [ -n "${missing}" ]; then
+            echo "Missing required repository secret(s):${missing}"
+            echo "Add them under Settings > Secrets and variables > Actions, then re-run."
+            exit 1
+          fi
+          echo "Both credential secrets are present."
+
+      # --logger "console;verbosity=detailed" is not optional here. Every gate prints the redacted
+      # request URI and the response it read, and that evidence is the actual deliverable of this run.
+      - name: Run live contract gates
+        env:
+          ABCONNECT_PARTNER_ID: ${{ secrets.ABCONNECT_PARTNER_ID }}
+          ABCONNECT_PARTNER_KEY: ${{ secrets.ABCONNECT_PARTNER_KEY }}
+          ABCONNECT_BASE_ADDRESS: ${{ inputs.base_address }}
+          ABCONNECT_DOCUMENT_GUID: ${{ inputs.document_guid }}
+        run: >
+          dotnet test OnCourse.ABConnect.sln
+          -c Release
+          --no-build
+          --filter "Category=Live"
+          --logger "console;verbosity=detailed"
+          --logger "trx;LogFileName=live-contract.trx"
+          --results-directory ./TestResults
+
+      # A skip here means the credentials reached the tests but were rejected as blank, which the step
+      # above should already have caught. Fail loudly rather than let a skipped gate look scheduled and
+      # satisfied.
+      - name: Confirm the gates actually ran
+        run: |
+          set -euo pipefail
+          trx=$(find ./TestResults -name 'live-contract.trx' -print | head -n 1)
+          if [ -z "${trx}" ]; then
+            echo "No test results were produced, so no gate ran."
+            exit 1
+          fi
+          if grep -q 'outcome="NotExecuted"' "${trx}"; then
+            echo "At least one live gate was skipped. The gates must run in this workflow."
+            exit 1
+          fi
+          echo "Every live gate executed."
+
+      - name: Upload gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-contract-evidence
+          path: ./TestResults
+          if-no-files-found: warn

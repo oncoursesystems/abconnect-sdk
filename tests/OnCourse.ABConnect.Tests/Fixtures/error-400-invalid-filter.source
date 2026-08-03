@@ -1,0 +1,33 @@
+A JSON:API error body carrying the "source" member, with two errors in one response.
+
+ASSEMBLED, not observed live. This is the one error fixture in this directory that is not a gate
+capture, and it exists because the two G-5 captures (error-401-unauthorized.json and
+error-404-not-found.json) both omit "source" entirely, which would leave
+ABConnectApiError.SourcePointer and ABConnectApiError.SourceParameter with no coverage at all.
+
+Built to the documented shape, not invented freely:
+  https://developerdocs.instructure.com/services/ab-connect/introduction/error-responses.md
+  specifies JSON:API errors[] with source.pointer, source.parameter, detail, status, and title. Those
+  five members and their nesting are the documentation's; the two messages and the misspelled property
+  names in them are written for this fixture.
+  01-sdk-v3.md section 5.2, which maps any 4xx other than 401, 403, 404, and 429 to
+  ABConnectInvalidRequestException and notes that such a response "names the offending parameter in
+  ABConnectApiError.SourceParameter".
+
+What a test must assert from it:
+  - ParseErrors returns TWO errors, in order. A parser that stopped at the first would hide the second
+    problem, and a request can be wrong in more than one way at once.
+  - errors[0].SourcePointer is "/data/attributes/document.titel" and errors[0].SourceParameter is
+    "filter[standards]". Both are read from inside the nested "source" object, not from the error
+    object itself.
+  - errors[1] has a "source" object carrying "parameter" but NO "pointer", so SourceParameter is
+    "fields[standards]" and SourcePointer is null. A half-populated source must not throw and must not
+    lose the half that is there.
+  - Status is the string "400" on both.
+  - A 400 response carrying this body maps to ABConnectInvalidRequestException, and the exception's
+    message is useful enough to fix the request from: this status is terminal for a GET and is never
+    retried, so the message is all the caller gets.
+
+The misspellings ("document.titel", "number.alternat") are deliberate. They are what a real caller
+typo produces, and they make it obvious when reading a test failure that the fixture is the
+bad-request case rather than a broken good one.

@@ -1,0 +1,24 @@
+A facet response for the documents facet: two documents, one of which has a null adopt_year.
+
+ASSEMBLED to the documented facet shape; see facet-authorities.source for the structure, the vendor
+citations, and what each count level means. The first document is the one gate G-3 used
+(9D85340C-592E-11E6-A0F5-48E229C466BA, meta.count 1163), reused so a test can join this facet to
+standards-page.json and standard-full-fields.json.
+
+What this fixture is for specifically:
+  - ABFacetNames.Documents is "document", and GetDocumentFacetAsync projects each detail into
+    DocumentSummary, which carries only Guid, AdoptYear, and Description. 01-sdk-v3.md section 5.4
+    states it plainly: "the document facet detail carries only description, adopt year, and GUID, per
+    the facet examples on the how-to page". This is the fixture that pins that, and it is why
+    DocumentSummary is a distinct type from StandardDocument rather than a reuse of it. A caller
+    holding a DocumentSummary cannot ask a facet response for a publication or a modified date, because
+    a facet response does not have them.
+  - AdoptYear is a STRING. The second document's adopt_year is null, which is the case that fixes
+    defect 11: the year fields were typed int in version 2 and AB Connect returns null for them
+    routinely, so every one of the five year fields is string? in version 3. A test that reads
+    Values[1].Value.AdoptYear and gets null off this fixture is the regression guard.
+  - meta.count is 1210, which is 1163 + 47, the sum of the two details[].count values. facets[].count
+    is 2. Those are different numbers measuring different things and a test should assert both so that a
+    projection which confused them fails loudly.
+  - Two values rather than one, so a test can prove ordering is preserved as AB Connect sent it. The
+    SDK does not sort facet values; AB Connect's order is the order.

@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "count": 1163,
+    "took": 38,
+    "facets": [
+      {
+        "facet": "document.publication.regions",
+        "count": 1,
+        "details": [
+          {
+            "count": 1163,
+            "data": {
+              "guid": "5B0F2E10-592E-11E6-A0F5-48E229C466BA",
+              "type": "state",
+              "code": "WV",
+              "descr": "West Virginia"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "data": []
+}

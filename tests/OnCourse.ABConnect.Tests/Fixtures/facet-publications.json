@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "count": 1163,
+    "took": 52,
+    "facets": [
+      {
+        "facet": "document.publication",
+        "count": 1,
+        "details": [
+          {
+            "count": 1163,
+            "data": {
+              "guid": "7C1D0A44-592E-11E6-A0F5-48E229C466BA",
+              "type": "publication",
+              "code": "WV-CCRS",
+              "acronym": "CCRS",
+              "source_url": "https://wvde.us/",
+              "descr": "West Virginia College and Career Readiness Standards"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "data": []
+}

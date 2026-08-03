@@ -1,0 +1,18 @@
+A facet response for the regions facet: one region, West Virginia.
+
+ASSEMBLED to the documented facet shape; see facet-authorities.source for the structure, the vendor
+citations, and what each count level means. The region reuses the one embedded in
+standard-full-fields.json so a test can prove the facet detail and the embedded copy agree.
+
+What this fixture is for specifically:
+  - ABFacetNames.Regions is "document.publication.regions", and GetRegionFacetAsync projects each
+    detail into Region.
+  - Region.Type is "state" here. It is an open string, not an enum: section 7.3 lists Region.Type
+    alongside Standard.Status and ABEvent.ChangeType as a value whose complete set AB Connect has never
+    published. A test should treat "state" as one observed value, not as the value set.
+  - Region.Description is mapped from "descr". Region is the type where this mattered most: before
+    version 3 it alone exposed the raw property name Descr while Authority, Publication, Document,
+    StandardSection, and StandardStatement all mapped it to Description
+    (01-sdk-v3.md section 7.4). A test that reads Description off this fixture pins that repair.
+  - GetRegionFacetAsync has no CLI caller today. It is retained because it is one of the documented
+    facets and costs one method, so this fixture is the only coverage it will get.

@@ -1,0 +1,22 @@
+The body of GET /standards/{guid}, a lookup of one standard by GUID.
+
+Behavior this fixture encodes, from the AB Connect documentation:
+  "When looking up a standard by GUID (.../standards/<GUID>), the system will respond with the
+  standard regardless of whether it is deleted or not"
+  https://developerdocs.instructure.com/services/ab-connect/introduction/how-to.md
+Gate G-5 (01-sdk-v3.md section 12) confirmed this live on 2026-08-02: a direct lookup of a GUID with
+status "deleted" returned it with no status filter needed. This fixture is therefore a deleted
+standard, which is the case the whole method exists for.
+
+Verbatim from a live sample:
+  the GUID 26998816-1a35-11eb-bb5b-0e20088bb29a, which gate G-4 captured as the "standard"
+  relationship of a deleted/standard event, upper-cased here because AB Connect returns standard GUIDs
+  upper-case while event ids are lower-case UUIDs (01-sdk-v3.md section 7.5).
+  the number values "a." and "MU:CT.HSAdv.Pr4.a", from the G-4 affected_properties sample for an
+  "updated numbering" event.
+
+NOT VERIFIED LIVE, and the reason this file has a warning in it: no gate captured the envelope of a
+single-resource lookup, so whether "data" is the resource object (JSON:API's own rule, and what is
+written here) or a one-element array is an assumption. The internal ABResourceDocument.Unwrap
+deliberately accepts both forms so that a wrong guess here cannot turn a successful lookup into a
+format error. If a later gate captures the real body, correct this fixture rather than the parser.

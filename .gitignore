@@ -45,6 +45,10 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# Coverage and TRX output. The CI workflow writes ./TestResults, and so does a local
+# `dotnet test --results-directory ./TestResults`.
+TestResults/
+
 *_i.c
 *_p.c
 *_i.h

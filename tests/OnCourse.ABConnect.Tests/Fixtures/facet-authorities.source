@@ -1,0 +1,37 @@
+A facet response for the authorities facet: two authorities over one document's worth of standards.
+
+ASSEMBLED to the documented facet shape. The envelope structure is the vendor's; the authority names,
+GUIDs, and counts are written for this fixture and reuse the WVDE authority from
+standard-full-fields.json so a test can join the two.
+
+Structure and semantics:
+  https://developerdocs.instructure.com/services/ab-connect/introduction/facets.md
+  which states "AB Connect does not support paging of facet data" and "When requesting facets with a
+  large number of values (count > 10,000) only the first 10,000 entries are returned".
+  https://developerdocs.instructure.com/services/ab-connect/introduction/how-to.md
+  whose worked facet examples are where the meta.facets[].details[].data nesting comes from.
+  01-sdk-v3.md sections 5.3, 5.5, and 6.3.
+
+The shape, and why every level of it matters:
+  - Facet data arrives under meta.facets, NOT under data. The request is a standards request with
+    limit=0, so "data" is empty and everything of interest is in "meta". A reader that looked in "data"
+    would find nothing and report an empty facet.
+  - meta.count (1163) is the number of STANDARDS the facet was computed over. It is not the number of
+    facet values and must never be projected into ABFacet.ReportedCount.
+  - facets[].count (2) IS ABFacet.ReportedCount: the number of distinct values AB Connect reports.
+  - details[].count is the number of matched standards carrying that value, and becomes
+    ABFacetValue.Count.
+  - details[].data is the thin detail object, and becomes ABFacetValue.Value.
+
+What a test must assert from it:
+  - The facet name is echoed back under the member "facet". Compare facet-sections-truncated.json,
+    which uses the alias "facet_type"; the SDK accepts both, and one of the two spellings being wrong
+    must not silently produce an empty facet.
+  - ABFacet.FacetName equals ABFacetNames.Authorities, which is "document.publication.authorities".
+    That magic string lives in the SDK, on ABFacetNames, and no consumer should ever carry its own
+    copy; before version 3 every call site did, so a typo produced an empty result rather than an error.
+  - Values.Count is 2, Values[0].Count is 1163, and Values[0].Value is an Authority whose Acronym is
+    "WVDE" and whose Description is "West Virginia Department of Education". Note descr -> Description:
+    Authority does not expose a raw "Descr" property.
+  - IsTruncated is FALSE here, because facets[].count equals details.Length.
+  - GetAuthorityFacetAsync returns this projection, never null, per Invariant E1.

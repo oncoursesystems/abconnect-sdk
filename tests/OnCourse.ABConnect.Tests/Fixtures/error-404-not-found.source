@@ -1,0 +1,28 @@
+The body AB Connect returns for a lookup of a standard GUID that does not exist.
+
+VERBATIM from a live probe, gate G-5 result in 01-sdk-v3.md section 12, run 2026-08-02 against devel
+partner sws:
+
+  a lookup of a nonexistent standard GUID returned
+  404 {"errors":[{"status":"404","title":"Not Found","detail":null}]}
+
+The file is that body, byte for byte, on one line as the service sent it.
+
+Documented shape:
+  https://developerdocs.instructure.com/services/ab-connect/introduction/error-responses.md
+  01-sdk-v3.md section 5.2, which maps 404 to ABConnectNotFoundException.
+
+The point of this fixture is the EXPLICIT NULL detail. AB Connect sends "detail": null rather than
+omitting the member, and section 5.2's remark that "every member of ABConnectApiError is optional"
+rests on exactly this observation. What a test must assert:
+  - ParseErrors returns one error, not zero. A parser that rejected the object because a member was
+    null would silently produce an empty Errors list and an exception message with nothing in it.
+  - Detail is null. It must not become the string "null", and it must not become "".
+  - Status is the string "404" and Title is "Not Found".
+  - SourcePointer and SourceParameter are null; there is no "source" member.
+  - A 404 response carrying this body maps to ABConnectNotFoundException.
+
+Contrast with GetStandardAsync's documented behavior, which the same G-5 run also confirmed: a direct
+GET /standards/{guid} for a GUID whose status is deleted returns HTTP 200 with the standard, no status
+filter needed (see standard-lookup.json). A 404 therefore means the GUID is genuinely unknown, not
+that it was retired, and the two cases must never be conflated.

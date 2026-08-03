@@ -1,0 +1,20 @@
+One events resource object carrying a populated nondeliverable_standard relationship.
+
+Verbatim from a live sample, gate G-4 result in 01-sdk-v3.md section 12, run 2026-08-02 against devel
+partner sws:
+
+  nondeliverable_standard relationship: populated, captured on an "updated metadata"/standard event:
+  "nondeliverable_standard":{"data":{"type":"standards","id":"5c235a52-06ee-4dd7-a679-993947c1cfdf"}}
+
+That block, the change_type, and the target are the capture. Note that this id is a lower-case v4 UUID
+rather than the upper-case, dash-grouped form the other standard GUIDs use; that is what AB Connect
+returned, and a test should carry it through unchanged rather than normalizing it.
+
+"updated metadata" is another of the eleven live change_type values G-4 observed against the two the
+vendor documents. It is a standard-level change, so ABEvent.IsDeliveryEvent must return false: the
+helper is conservative by construction and only "added" or "removed" on a document or section target is
+a deliverability event.
+
+Assembled for this fixture, not observed live: the event id, seq, date_utc, document_guid,
+section_guid, and both affected_properties entries. The two entries exist so a test can prove the array
+handles more than one element and mixed value types in the same event.

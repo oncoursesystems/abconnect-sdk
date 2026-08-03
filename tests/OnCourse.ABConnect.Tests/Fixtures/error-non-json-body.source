@@ -1,0 +1,23 @@
+A failure body that is not JSON at all, so it is not a JSON:API error document either.
+
+ASSEMBLED, not observed live. This is the shape a reverse proxy or load balancer in front of AB Connect
+emits when the service behind it is unreachable, and it is the reason ParseErrors is specified to
+return an empty list rather than to throw. The extension is .txt, not .json, because the content is
+not JSON; every other fixture in this directory is genuinely the JSON it claims to be.
+
+Relevant specification text, 01-sdk-v3.md section 5.2:
+
+  When the body is not parseable as that shape the list is empty and the raw body's first 2000
+  characters go into the exception message.
+
+What a test must assert from it:
+  - ABConnectResponseMapper.ParseErrors returns an EMPTY list. It must not throw, and it must not
+    return null: ABConnectRequestException.Errors is documented as never null, [] when there are none.
+  - The same holds for a body that parses as JSON but has no "errors" array, and for one whose
+    "errors" member is not an array. Those two cases need no fixture file; they are one-line string
+    literals in the test.
+  - A 502 response carrying this body maps to ABConnectServerException with an empty Errors list, and
+    the exception message carries an excerpt of the body so the operator can see it was an HTML gateway
+    page rather than an AB Connect answer. Distinguishing those two is the whole value of the excerpt.
+  - The excerpt is bounded by ABConnectResponseMapper.MaxBodyExcerptLength (2000). This body is far
+    shorter than that, so a truncation test needs a synthesized long string rather than this file.

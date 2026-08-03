@@ -6,44 +6,69 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  publish:
     runs-on: self-hosted
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [net6.0, net7.0]
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            6.0.x
-            7.0.x
+          dotnet-version: 8.0.x
 
-      - name: Restore test dependencies
-        run: dotnet restore
+      - name: Restore
+        run: dotnet restore OnCourse.ABConnect.sln
 
       - name: Build
-        run: dotnet build -c release -f ${{ matrix.target }} --no-restore
+        run: dotnet build OnCourse.ABConnect.sln -c Release --no-restore -warnaserror
 
-  publish:
-    runs-on: self-hosted
-    needs: build
+      # The Live trait needs devel partner credentials, which CI does not have.
+      - name: Test
+        run: dotnet test OnCourse.ABConnect.sln -c Release --no-build --filter "Category!=Live"
 
-    steps:
+      # Gate G-7. The README is the package README, so a sample that does not compile must not ship.
+      - name: Check README samples compile
+        run: dotnet run --project tools/ReadmeFenceCheck/ReadmeFenceCheck.csproj -c Release -- README.md
+
+      # The version is the release tag with any leading "v" removed. NuGet rejects "v3.0.0" as a
+      # version string outright, so passing the raw ref name fails the pack for every tag written in
+      # the conventional "v"-prefixed form. Stripping it here accepts both tag styles.
+      - name: Resolve package version from the release tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          version="${tag#v}"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'; then
+            echo "The tag '$tag' does not resolve to a NuGet version (got '$version')."
+            exit 1
+          fi
+          echo "Packing version $version from tag $tag"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # ReadmeFenceCheck sets IsPackable=false and is not in the solution, and the test project sets
+      # IsPackable=false, so only the SDK is packed.
       - name: Build NuGet Package
-        run: dotnet pack -c Release -p:PackageVersion=${{  github.ref_name }}
+        run: >
+          dotnet pack src/OnCourse.ABConnect/OnCourse.ABConnect.csproj
+          -c Release
+          --no-build
+          -p:PackageVersion=${{ steps.version.outputs.version }}
+          -o ./artifacts
 
       - name: Upload nuget package artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: Nuget package
-          path: "**/*.nupkg"
+          name: nuget-package
+          path: ./artifacts/*.nupkg
 
       - name: Publish NuGet Package
-        run: dotnet nuget push "**/*.nupkg" -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+        run: >
+          dotnet nuget push "./artifacts/*.nupkg"
+          -k ${{ secrets.NUGET_TOKEN }}
+          -s https://api.nuget.org/v3/index.json
+          --skip-duplicate
