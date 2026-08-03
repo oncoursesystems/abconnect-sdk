@@ -37,10 +37,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      # DOTNET_INSTALL_DIR is required on these self-hosted runners: the runner account cannot write
+      # to /usr/share/dotnet, so setup-dotnet fails with a permission error unless it is pointed at a
+      # directory the job owns.
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
 
       - name: Restore
         run: dotnet restore OnCourse.ABConnect.sln
