@@ -9,10 +9,11 @@ public sealed record DocumentReadOptions
     public StandardFieldSet Fields { get; init; } = StandardFieldSet.Snapshot;
 
     /// <summary>
-    /// Which lifecycle states to include. Defaults to both active and deleted standards, because a
-    /// mirror that cannot see a deletion cannot apply it.
+    /// Which lifecycle states to include. Defaults to every documented state, active, deleted and
+    /// obsolete, because a mirror that cannot see a deletion cannot apply it and one that drops
+    /// obsolete standards silently sheds rows existing local links resolve against.
     /// </summary>
-    public StandardStatusScope Status { get; init; } = StandardStatusScope.ActiveAndDeleted;
+    public StandardStatusScope Status { get; init; } = StandardStatusScope.All;
 
     /// <summary>Rows per page. Clamped to AB Connect's documented maximum of 100.</summary>
     /// <remarks>

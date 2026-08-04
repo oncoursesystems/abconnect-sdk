@@ -249,9 +249,10 @@ public sealed class StandardsPagingTests
             Assert.Equal("seq,guid", FakeABConnectClient.ParameterValue(uri, "sort[standards]"));
             Assert.Contains("sort[standards]=seq,guid", uri, StringComparison.Ordinal);
 
-            // Defect 8: deleted standards are in scope on every request, so a deletion is visible.
+            // Defect 8: deleted and obsolete standards are in scope on every request, so a complete
+            // mirror sees a deletion and never silently sheds an obsolete standard.
             Assert.Equal(
-                $"((document.guid EQ '{DocumentGuid}') AND (status IN ('active','deleted')))",
+                $"((document.guid EQ '{DocumentGuid}') AND (status IN ('active','deleted','obsolete')))",
                 FakeABConnectClient.DecodedParameterValue(uri, "filter[standards]"));
 
             // Defect 5: the .guid spelling, never .id.
@@ -268,7 +269,7 @@ public sealed class StandardsPagingTests
         Assert.All(client.StandardsQueries, query =>
         {
             Assert.Equal(StandardSort.Default, query.Sort);
-            Assert.Equal(StandardStatusScope.ActiveAndDeleted, query.Status);
+            Assert.Equal(StandardStatusScope.All, query.Status);
             Assert.Equal(StandardFieldSet.Snapshot, query.Fields);
             Assert.False(query.Fields.IsWildcard);
         });

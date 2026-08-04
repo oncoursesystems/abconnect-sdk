@@ -363,8 +363,10 @@ Guarantees:
 - Every request carries `sort[standards]=seq,guid`. Two keys, because `seq` alone is not unique and an
   unstable sort silently drops and duplicates rows across offset pages.
 - Every request carries an explicit status term. The default scope is
-  `status IN ('active','deleted')`, so deleted standards are visible; AB Connect excludes them unless
-  a filter asks for them by name.
+  `status IN ('active','deleted','obsolete')`, so a complete mirror sees deleted and obsolete standards
+  alike. AB Connect's own no-filter default returns active and obsolete but hides deleted, and a
+  `status IN ('active','deleted')` filter hides obsolete; the default here (`StandardStatusScope.All`)
+  hides neither. Narrow it with `Active`, `Deleted`, `Obsolete`, or `ActiveAndDeleted` when you want less.
 - A GUID appearing on two pages throws `ABConnectPagingException` naming the GUID and the page.
 - Before a snapshot is returned, the distinct GUID count must equal `meta.count` exactly. The
   tolerance is zero. A shortfall or an overshoot throws `ABConnectPagingException`; the usual cause is
@@ -537,7 +539,7 @@ version 2 arrangement allowed.
 | Hand-rolled `do { ... } while` over `api.GetEvents(seq, offset)` plus `api.ParseOffset(links.next)` | `await foreach (var page in feed.ReadEventPagesAsync(watermark, cancellationToken: ct))`. `ParseOffset` no longer exists. |
 | Hand-rolled offset loop to read a whole document | `feed.ReadDocumentSnapshotAsync(guid, ct)`, with duplicate and shortfall verification |
 | No way to fetch one standard by GUID | `client.GetStandardAsync(guid, ct)` |
-| Deleted standards invisible | `StandardStatusScope.ActiveAndDeleted` is the default scope |
+| Deleted standards invisible; obsolete standards silently included by the no-filter default | `StandardStatusScope.All` (active + deleted + obsolete) is the default scope, so nothing is hidden and nothing is silently dropped |
 | `Guard.Against.Null(events, "events")` after every call | Deleted. Version 3 cannot return null. |
 | `if (events.Data is null \|\| events.Data.Count == 0 \|\| events.Meta is null) break;` | Deleted. Loop termination belongs to the SDK, and a failure throws instead of looking empty. |
 | `events.Meta.Count`, available only on the first page | `page.ReportedTotalCount`, on every page |

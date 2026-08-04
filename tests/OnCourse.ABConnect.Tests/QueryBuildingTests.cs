@@ -22,8 +22,12 @@ public sealed class QueryBuildingTests
     private const string DocumentGuid = "9D85340C-B0E5-4C0A-9A1B-2C3D4E5F6A7B";
     private const string AuthorityGuid = "1A2B3C4D-5E6F-4A0B-8C9D-0E1F2A3B4C5D";
 
-    /// <summary>The percent-encoding of <c>(status IN ('active','deleted'))</c>, escaped exactly once.</summary>
-    private const string EncodedStatusTerm = "%28status%20IN%20%28%27active%27%2C%27deleted%27%29%29";
+    /// <summary>
+    /// The percent-encoding of the default status term, <c>(status IN ('active','deleted','obsolete'))</c>,
+    /// escaped exactly once.
+    /// </summary>
+    private const string EncodedStatusTerm =
+        "%28status%20IN%20%28%27active%27%2C%27deleted%27%2C%27obsolete%27%29%29";
 
     /// <summary>The <c>fields[standards]</c> value of <see cref="StandardFieldSet.Identity"/>.</summary>
     private const string IdentityFields = "guid,status,date_modified_utc";
@@ -284,7 +288,7 @@ public sealed class QueryBuildingTests
 
         string once = FakeABConnectClient.DecodedParameterValue(requestUri, "filter[standards]");
         Assert.Equal(
-            $"((document.guid EQ '{DocumentGuid}') AND (status IN ('active','deleted')))",
+            $"((document.guid EQ '{DocumentGuid}') AND (status IN ('active','deleted','obsolete')))",
             once);
         Assert.DoesNotContain("%", once, StringComparison.Ordinal);
     }
@@ -312,7 +316,9 @@ public sealed class QueryBuildingTests
     [Theory]
     [InlineData(StandardStatusScope.Active, "(status EQ 'active')")]
     [InlineData(StandardStatusScope.Deleted, "(status EQ 'deleted')")]
+    [InlineData(StandardStatusScope.Obsolete, "(status EQ 'obsolete')")]
     [InlineData(StandardStatusScope.ActiveAndDeleted, "(status IN ('active','deleted'))")]
+    [InlineData(StandardStatusScope.All, "(status IN ('active','deleted','obsolete'))")]
     public void EveryStatusScopeEmitsItsDocumentedTermAndTheTermIsNeverOmitted(
         StandardStatusScope scope,
         string expected)
@@ -325,13 +331,15 @@ public sealed class QueryBuildingTests
     }
 
     [Fact]
-    public void TheDefaultStatusScopeIsActiveAndDeletedSoDeletionsAreVisible()
+    public void TheDefaultStatusScopeIsAllSoDeletionsAndObsoleteStandardsAreVisible()
     {
-        // Defect 8: AB Connect hides deleted standards unless the filter names them, so the scope that
-        // makes a deletion visible has to be the default rather than an opt-in.
-        Assert.Equal(StandardStatusScope.ActiveAndDeleted, new StandardsQuery().Status);
+        // Defect 8: AB Connect hides deleted standards unless the filter names them, and its no-filter
+        // default drops obsolete standards, so the scope that makes a complete mirror has to be the
+        // default rather than an opt-in. All emits status IN ('active','deleted','obsolete').
+        Assert.Equal(StandardStatusScope.All, new StandardsQuery().Status);
         Assert.Equal("active", ABStandardStatuses.Active);
         Assert.Equal("deleted", ABStandardStatuses.Deleted);
+        Assert.Equal("obsolete", ABStandardStatuses.Obsolete);
     }
 
     [Fact]
