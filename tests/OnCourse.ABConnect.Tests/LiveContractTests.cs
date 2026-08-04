@@ -344,11 +344,10 @@ public sealed class LiveContractTests
 
     [SkippableFact]
     [Trait("Category", "Live")]
-    public async Task GateEightDocumentSnapshotsAreCompleteAndSupersetTheActiveOnlyView()
+    public async Task GateEightDefaultSnapshotSupersetsTheVersionTwoActivePlusObsoleteView()
     {
         using ServiceProvider provider = BuildProvider();
 
-        ABConnectOptions options = ResolveOptions(provider);
         var feed = provider.GetRequiredService<IABConnectFeed>();
 
         string[] documentGuids = (Environment.GetEnvironmentVariable(ParityDocumentGuidsVariable)
@@ -363,46 +362,48 @@ public sealed class LiveContractTests
 
         foreach (string documentGuid in documentGuids)
         {
-            (string pageOneUri, _) = ABQueryStringBuilder.Build(
-                new StandardsQuery
-                {
-                    Filter = StandardsFilter.ByDocument(documentGuid),
-                    Page = new PageRequest(0, options.PageSize),
-                },
-                options);
-            _output.WriteLine($"G-8 page one request: {pageOneUri}");
-
+            // The default snapshot is StandardStatusScope.All: active + deleted + obsolete.
             Stopwatch stopwatch = Stopwatch.StartNew();
-            DocumentSnapshot full = await feed.ReadDocumentSnapshotAsync(
-                documentGuid,
-                new DocumentReadOptions { Status = StandardStatusScope.ActiveAndDeleted });
+            DocumentSnapshot full = await feed.ReadDocumentSnapshotAsync(documentGuid);
             TimeSpan fullElapsed = stopwatch.Elapsed;
 
-            stopwatch.Restart();
-            DocumentSnapshot activeOnly = await feed.ReadDocumentSnapshotAsync(
-                documentGuid,
-                new DocumentReadOptions { Status = StandardStatusScope.Active });
-            TimeSpan activeElapsed = stopwatch.Elapsed;
-
-            _output.WriteLine(
-                $"G-8 {documentGuid}: active and deleted {full.Standards.Count} rows in {fullElapsed}, " +
-                $"active only {activeOnly.Standards.Count} rows in {activeElapsed}, " +
-                $"pages fetched {full.PagesFetched}, reported total {full.ReportedTotalCount}");
+            // The old SDK asked the vendor for standards without naming any status. When you do that,
+            // the vendor sends back current ("active") standards and retired ("obsolete") ones, but
+            // never "deleted" ones. So "active + obsolete" is exactly the set of standards the old SDK
+            // used to get. The new SDK must still return every one of those, or upgrading would quietly
+            // lose standards. We rebuild that set from an active read plus an obsolete read and check
+            // each standard in it is still in the default snapshot below.
+            DocumentSnapshot active = await feed.ReadDocumentSnapshotAsync(
+                documentGuid, new DocumentReadOptions { Status = StandardStatusScope.Active });
+            DocumentSnapshot obsolete = await feed.ReadDocumentSnapshotAsync(
+                documentGuid, new DocumentReadOptions { Status = StandardStatusScope.Obsolete });
 
             Dictionary<string, Standard> fullByGuid = Index(full);
-            Dictionary<string, Standard> activeByGuid = Index(activeOnly);
 
             Assert.Equal(full.Standards.Count, fullByGuid.Count);
             Assert.Equal(full.ReportedTotalCount, fullByGuid.Count);
 
-            // Version 2 could only ever see active standards, so the active-only view stands in for the
-            // record set it produced. Version 3 must be a superset of it, strictly so wherever the
-            // document holds deleted standards.
-            foreach ((string guid, Standard version2Equivalent) in activeByGuid)
+            int deletedCount = full.Standards.Count(
+                s => s.Attributes?.Status == ABStandardStatuses.Deleted);
+            int obsoleteInFull = full.Standards.Count(
+                s => s.Attributes?.Status == ABStandardStatuses.Obsolete);
+
+            _output.WriteLine(
+                $"G-8 {documentGuid}: full (all) {full.Standards.Count} rows in {fullElapsed}, " +
+                $"of which {deletedCount} deleted and {obsoleteInFull} obsolete; version 2 stand-in " +
+                $"(active {active.Standards.Count} + obsolete {obsolete.Standards.Count}); " +
+                $"pages fetched {full.PagesFetched}, reported total {full.ReportedTotalCount}");
+
+            // The version 2 record set is active + obsolete. Every GUID in it must be present in the
+            // version 3 default snapshot with identical content on the fields the gate names.
+            foreach (Standard version2Equivalent in active.Standards.Concat(obsolete.Standards))
             {
+                string guid = version2Equivalent.Attributes?.Guid ?? version2Equivalent.Id;
+
                 Assert.True(
                     fullByGuid.TryGetValue(guid, out Standard? version3),
-                    $"Standard {guid} is visible to an active-only read but missing from the full read.");
+                    $"Standard {guid} shows up when you ask the vendor for active or obsolete standards, "
+                        + "but it is missing from the default snapshot. Upgrading the SDK would quietly drop this standard.");
 
                 Assert.Equal(
                     version2Equivalent.Attributes?.Number?.PrefixEnhanced,
@@ -416,9 +417,9 @@ public sealed class LiveContractTests
                     version3.Relationships?.Parent?.Id);
             }
 
-            int deletedCount = full.Standards.Count(
-                standard => standard.Attributes?.Status == ABStandardStatuses.Deleted);
-            _output.WriteLine($"G-8 {documentGuid}: {deletedCount} deleted standards version 2 could not see");
+            _output.WriteLine(
+                $"G-8 {documentGuid}: {deletedCount} deleted standards version 2 could not see; "
+                    + $"{obsoleteInFull} obsolete standards carried that a status IN ('active','deleted') filter would drop");
         }
     }
 

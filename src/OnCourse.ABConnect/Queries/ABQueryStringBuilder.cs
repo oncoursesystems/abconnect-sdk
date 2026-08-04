@@ -321,7 +321,9 @@ public static partial class ABQueryStringBuilder
     {
         StandardStatusScope.Active => $"({StatusField} EQ '{ABStandardStatuses.Active}')",
         StandardStatusScope.Deleted => $"({StatusField} EQ '{ABStandardStatuses.Deleted}')",
+        StandardStatusScope.Obsolete => $"({StatusField} EQ '{ABStandardStatuses.Obsolete}')",
         StandardStatusScope.ActiveAndDeleted => $"({StatusField} IN ('{ABStandardStatuses.Active}','{ABStandardStatuses.Deleted}'))",
+        StandardStatusScope.All => $"({StatusField} IN ('{ABStandardStatuses.Active}','{ABStandardStatuses.Deleted}','{ABStandardStatuses.Obsolete}'))",
         _ => throw new ArgumentException(
             $"'{status}' is not a recognized {nameof(StandardStatusScope)}.",
             parameterName),

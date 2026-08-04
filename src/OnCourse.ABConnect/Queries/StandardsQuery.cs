@@ -5,8 +5,8 @@ namespace OnCourse.ABConnect.Queries;
 /// </summary>
 /// <remarks>
 /// Every default on this type is the safe production choice: an explicit field set rather than a
-/// wildcard, a total ordering rather than relevance ordering, and a status scope that includes
-/// deletions so a mirror can see them.
+/// wildcard, a total ordering rather than relevance ordering, and a status scope that includes every
+/// documented lifecycle state so a complete mirror sees deletions and obsolete standards alike.
 /// </remarks>
 public sealed record StandardsQuery
 {
@@ -26,7 +26,10 @@ public sealed record StandardsQuery
     public PageRequest Page { get; init; } = PageRequest.First;
 
     /// <summary>
-    /// Which lifecycle states to include. Defaults to both active and deleted standards.
+    /// Which lifecycle states to include. Defaults to every documented state, active, deleted and
+    /// obsolete, so a mirror is complete. AB Connect's own no-filter default omits deleted, and a
+    /// <c>status IN ('active','deleted')</c> filter omits obsolete; <see cref="StandardStatusScope.All"/>
+    /// omits neither.
     /// </summary>
-    public StandardStatusScope Status { get; init; } = StandardStatusScope.ActiveAndDeleted;
+    public StandardStatusScope Status { get; init; } = StandardStatusScope.All;
 }
