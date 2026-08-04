@@ -27,13 +27,12 @@ public sealed class DeserializationTests
     private const string GateThreeDocumentGuid = "9D85340C-592E-11E6-A0F5-48E229C466BA";
 
     /// <summary>
-    /// Every <c>change_type</c> value the gate G-4 run observed live on 2026-08-02, plus two values
-    /// AB Connect has never sent. The gate's prose says eleven values and then lists twelve; the list
-    /// is what was observed, so the list is what is tested. The point of the theory is that all of
-    /// them, known and unknown alike, deserialize as opaque strings.
+    /// Every <c>change_type</c> value observed live on 2026-08-02, all twelve of them, plus two values
+    /// AB Connect has never sent. AB Connect's own documentation names two. The point of the theory is
+    /// that all of them, known and unknown alike, deserialize as opaque strings.
     /// </summary>
-    public static TheoryData<string> ChangeTypeValues =>
-    [
+    public static TheoryData<string> ChangeTypeValues => new()
+    {
         "added",
         "removed",
         "deleted",
@@ -48,12 +47,13 @@ public sealed class DeserializationTests
         "updated punctuation",
         "a change type AB Connect has never sent",
         string.Empty,
-    ];
+    };
 
     /// <summary>
     /// The three <c>target</c> values gate G-4 observed, plus one AB Connect has never sent.
     /// </summary>
-    public static TheoryData<string> TargetValues => ["document", "section", "standard", "curriculum"];
+    public static TheoryData<string> TargetValues =>
+        new() { "document", "section", "standard", "curriculum" };
 
     [Fact]
     public void StandardFullFieldsFixtureBindsEveryAttribute()

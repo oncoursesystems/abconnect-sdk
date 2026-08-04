@@ -26,10 +26,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      # global-json-file, not dotnet-version: the repository pins an SDK feature band, and 8.0.1xx and
+      # 8.0.4xx ship different analyzer versions. Letting CI resolve 8.0.x independently is how a build
+      # passes on a developer machine and fails here on a rule neither of them chose.
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          global-json-file: global.json
 
       - name: Restore
         run: dotnet restore OnCourse.ABConnect.sln

@@ -54,7 +54,7 @@ public sealed class ReadmeSampleTests
     {
         get
         {
-            TheoryData<int, int, string> data = [];
+            TheoryData<int, int, string> data = new();
 
             foreach (var fence in ExtractFences(File.ReadAllLines(ReadmePath())))
             {
