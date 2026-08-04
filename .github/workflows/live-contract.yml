@@ -1,17 +1,29 @@
 name: Live Contract Gates
 
-# The live contract tests for gates G-1 through G-5 and G-8 in the SDK v3 specification. They talk to
-# AB Connect over the network with devel partner credentials, read only, so they are deliberately kept
-# out of the CI workflow and run here instead: on demand, and weekly so that a vendor-side change to a
-# field name, an event shape, or the base address is caught before a release rather than during one.
+# The live contract tests. They are the only tests in this repository that touch the network, so they
+# are kept out of CI and run here instead, on demand: before a release, or when AB Connect is suspected
+# of having changed a field name, an event shape, or a host.
 #
-# Required repository secrets:
-#   ABCONNECT_PARTNER_ID   the devel partner id
-#   ABCONNECT_PARTNER_KEY  the devel partner key
+# Run this when you want to know that the vendor still behaves the way the SDK expects. Nothing runs it
+# for you, deliberately: see the note on the schedule below.
+#
+# CREDENTIALS. These are PRODUCTION AB Connect credentials and there is no devel account. They cannot
+# be rotated cheaply, so they are handled accordingly:
+#
+#   - They are ENVIRONMENT secrets on the 'live-contract' environment, not repository secrets, so only
+#     the job below can read them. Setting them at repository level would expose them to every workflow
+#     in this public repository and skip the approval gate entirely.
+#   - That environment requires a reviewer and is restricted to protected branches, so the key is
+#     injected only into a run a human just approved, from a workflow that reached master through
+#     review. A pushed branch cannot dispatch a workflow that prints it.
+#   - Every call these tests make is a GET. The suite reads; it never writes.
+#
+#   ABCONNECT_PARTNER_ID   the partner id
+#   ABCONNECT_PARTNER_KEY  the partner key, never printed; the tests redact it from URIs and bodies
 #
 # The tests themselves report as skipped when the credentials are absent, so the "Verify credentials"
 # step below is what turns a missing or expired secret into a red build here rather than a job that
-# quietly skips everything it was scheduled to check.
+# quietly skips everything it was asked to check.
 
 on:
   workflow_dispatch:
@@ -21,12 +33,14 @@ on:
         required: false
         type: string
       document_guid:
-        description: "Override the document GUID gate G-3 probes (blank uses the recorded devel document)"
+        description: "Override the document GUID the identifier-spelling gate probes (blank uses the recorded default)"
         required: false
         type: string
-  schedule:
-    # Mondays at 07:00 UTC.
-    - cron: "0 7 * * 1"
+
+  # No schedule on purpose. The 'live-contract' environment requires a human to approve each run, and a
+  # cron trigger would queue a run every week that sits waiting for an approval nobody is expecting and
+  # then expires. Vendor-drift checking is therefore a deliberate pre-release step, not a background
+  # one: run this workflow before cutting a release.
 
 permissions:
   contents: read

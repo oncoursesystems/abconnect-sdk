@@ -21,9 +21,16 @@ namespace OnCourse.ABConnect.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// These tests are excluded from CI by <c>--filter "Category!=Live"</c> in both workflows and are
-/// intended to be run by hand against the devel partner credentials, read only. They are the only
-/// tests in this project that perform network I/O.
+/// These tests are excluded from CI by <c>--filter "Category!=Live"</c> and are intended to be run by
+/// hand, before a release or when AB Connect is suspected of having changed. They are the only tests in
+/// this project that perform network I/O.
+/// </para>
+/// <para>
+/// <b>The credentials are production.</b> There is no devel AB Connect account, and the key cannot be
+/// rotated cheaply, so treat it accordingly: do not paste it into a shell that records history, and do
+/// not add it as a repository-level secret where every workflow could read it. Every call this class
+/// makes is a GET, so the suite reads and never writes, but a leaked key is still a leaked production
+/// key.
 /// </para>
 /// <para>
 /// To run them, set <c>ABCONNECT_PARTNER_ID</c> and <c>ABCONNECT_PARTNER_KEY</c> and run
@@ -52,10 +59,10 @@ namespace OnCourse.ABConnect.Tests;
 [Trait("Category", "Live")]
 public sealed class LiveContractTests
 {
-    /// <summary>The environment variable holding the devel partner id.</summary>
+    /// <summary>The environment variable holding the partner id.</summary>
     private const string PartnerIdVariable = "ABCONNECT_PARTNER_ID";
 
-    /// <summary>The environment variable holding the devel partner key.</summary>
+    /// <summary>The environment variable holding the partner key.</summary>
     private const string PartnerKeyVariable = "ABCONNECT_PARTNER_KEY";
 
     /// <summary>The optional environment variable overriding the base address.</summary>
@@ -68,8 +75,8 @@ public sealed class LiveContractTests
     private const string ParityDocumentGuidsVariable = "ABCONNECT_G8_DOCUMENT_GUIDS";
 
     /// <summary>
-    /// The document gate G-3 used on 2026-08-02, which had <c>meta.count</c> 1163 on devel partner
-    /// <c>sws</c>. Override it with <see cref="DocumentGuidVariable"/> for another account.
+    /// The document the identifier-spelling gate used on 2026-08-02, which had <c>meta.count</c> 1163 on
+    /// the <c>sws</c> account. Override it with <see cref="DocumentGuidVariable"/> for another account.
     /// </summary>
     private const string DefaultDocumentGuid = "9D85340C-592E-11E6-A0F5-48E229C466BA";
 
@@ -511,8 +518,8 @@ public sealed class LiveContractTests
         // into: a test that asserted nothing has not succeeded, and saying so is the whole point.
         Skip.If(
             string.IsNullOrWhiteSpace(partnerId) || string.IsNullOrWhiteSpace(partnerKey),
-            $"Set {PartnerIdVariable} and {PartnerKeyVariable} to devel credentials to run the live "
-                + "contract gates.");
+            $"Set {PartnerIdVariable} and {PartnerKeyVariable} to AB Connect credentials to run the "
+                + "live contract gates.");
 
         string? baseAddress = Environment.GetEnvironmentVariable(BaseAddressVariable);
 
