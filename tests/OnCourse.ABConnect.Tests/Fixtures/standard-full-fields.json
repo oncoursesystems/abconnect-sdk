@@ -1,0 +1,71 @@
+{
+  "id": "1B2C3D4E-592E-11E6-A0F5-48E229C466BA",
+  "type": "standards",
+  "attributes": {
+    "guid": "1B2C3D4E-592E-11E6-A0F5-48E229C466BA",
+    "seq": 33,
+    "level": 4,
+    "label": "Sub-objective",
+    "status": "active",
+    "standard_type": "objective",
+    "date_modified_utc": "2016-08-05 14:22:31",
+    "date_deleted_utc": null,
+    "number": {
+      "raw": "b.",
+      "enhanced": "WV.CCRS.SOC.9-12.PF.SS.C.33.b",
+      "prefix_enhanced": "WV.CCRS.SOC.9-12.PF.SS.C.33.b",
+      "root_enhanced": "WV.CCRS.SOC.9-12.PF.SS.C.33.b"
+    },
+    "statement": {
+      "descr": "Analyze the role of personal finance in a consumer economy.",
+      "combined_descr": "Social Studies: Personal Finance. Analyze the role of personal finance in a consumer economy."
+    },
+    "education_levels": {
+      "grades": [
+        { "seq": 11, "code": "11", "guid": "8F3A1B20-592E-11E6-A0F5-48E229C466BA", "descr": "Eleventh grade" },
+        { "seq": 9, "code": "09", "guid": "8F3A1B1E-592E-11E6-A0F5-48E229C466BA", "descr": "Ninth grade" },
+        { "seq": 12, "code": "12", "guid": "8F3A1B21-592E-11E6-A0F5-48E229C466BA", "descr": "Twelfth grade" },
+        { "seq": 10, "code": "10", "guid": "8F3A1B1F-592E-11E6-A0F5-48E229C466BA", "descr": "Tenth grade" }
+      ]
+    },
+    "section": {
+      "guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+      "descr": "Personal Finance"
+    },
+    "document": {
+      "guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+      "descr": "College and Career Readiness Standards for Social Studies",
+      "adopt_year": "2016",
+      "revision_year": null,
+      "implementation_year": "2017",
+      "assessment_year": null,
+      "obsolete_year": null,
+      "source_url": "https://wvde.us/social-studies/",
+      "date_modified_utc": "2016-08-05 14:22:31",
+      "publication": {
+        "guid": "7C1D0A44-592E-11E6-A0F5-48E229C466BA",
+        "descr": "West Virginia College and Career Readiness Standards",
+        "acronym": "CCRS",
+        "source_url": "https://wvde.us/",
+        "publication_type": "state standards",
+        "regions": [
+          { "guid": "5B0F2E10-592E-11E6-A0F5-48E229C466BA", "type": "state", "code": "WV", "descr": "West Virginia" }
+        ],
+        "authorities": [
+          { "guid": "6A9E4C88-592E-11E6-A0F5-48E229C466BA", "acronym": "WVDE", "descr": "West Virginia Department of Education" }
+        ]
+      }
+    }
+  },
+  "relationships": {
+    "parent": {
+      "data": { "type": "standards", "id": "1B2C3D4D-592E-11E6-A0F5-48E229C466BA" }
+    },
+    "children": {
+      "data": [
+        { "type": "standards", "id": "1B2C3D4F-592E-11E6-A0F5-48E229C466BA" },
+        { "type": "standards", "id": "1B2C3D50-592E-11E6-A0F5-48E229C466BA" }
+      ]
+    }
+  }
+}

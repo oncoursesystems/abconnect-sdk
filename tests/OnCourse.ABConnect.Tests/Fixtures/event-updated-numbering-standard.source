@@ -1,0 +1,22 @@
+One events resource object: a standard whose number was changed.
+
+Verbatim from a live sample, gate G-4 result in 01-sdk-v3.md section 12, run 2026-08-02 against devel
+partner sws:
+
+  {"name":"number.raw","previous_value":"a.","new_value":"MU:CT.HSAdv.Pr4.a"} on an
+  "updated numbering"/standard event
+
+The affected_properties element is that capture, unchanged, and so are the change_type and target. It
+is the second of the two G-4 affected_properties samples, kept separate from the first because here
+previous_value and new_value are JSON strings rather than JSON numbers: one fixture proves
+AffectedProperty.NewValue survives as a number, the other proves it survives as a string, and together
+they justify JsonElement over any concrete type.
+
+Verbatim: the "standard" relationship id 26998816-1a35-11eb-bb5b-0e20088bb29a is the id G-4 captured
+on a live event, in the lower case AB Connect returned it in. Note that the attributes.guid in this
+fixture is the same GUID in upper case, which is how AB Connect spells standard GUIDs elsewhere. The
+case difference is real and is documented on ABEvent.Id: never compare the two forms without
+normalizing case.
+
+Assembled for this fixture, not observed live: the event id, seq, date_utc, document_guid, and
+section_guid.

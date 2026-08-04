@@ -1,0 +1,23 @@
+{
+  "id": "5f2b81ad-9c40-4f77-8e51-6a0c39d7be12",
+  "type": "events",
+  "attributes": {
+    "seq": 703204,
+    "date_utc": "2026-07-29 11:48:52",
+    "change_type": "updated numbering",
+    "target": "standard",
+    "guid": "26998816-1A35-11EB-BB5B-0E20088BB29A",
+    "document_guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+    "section_guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+    "affected_properties": [
+      { "name": "number.raw", "previous_value": "a.", "new_value": "MU:CT.HSAdv.Pr4.a" }
+    ]
+  },
+  "relationships": {
+    "standard": {
+      "data": { "type": "standards", "id": "26998816-1a35-11eb-bb5b-0e20088bb29a" }
+    },
+    "nondeliverable_standard": { "data": {} },
+    "deleted_standard": { "data": {} }
+  }
+}

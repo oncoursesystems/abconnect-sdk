@@ -1,0 +1,87 @@
+{
+  "links": {
+    "self": "https://api.abconnect.instructure.com/rest/v4.1/standards?limit=2&offset=0&filter%5Bstandards%5D=%28%28document.guid%20EQ%20%279D85340C-592E-11E6-A0F5-48E229C466BA%27%29%29&sort%5Bstandards%5D=seq%2Cguid",
+    "first": "https://api.abconnect.instructure.com/rest/v4.1/standards?limit=2&offset=0",
+    "prev": null,
+    "next": "https://api.abconnect.instructure.com/rest/v4.1/standards?limit=2&offset=2",
+    "last": "https://api.abconnect.instructure.com/rest/v4.1/standards?limit=2&offset=1162"
+  },
+  "meta": {
+    "limit": 2,
+    "offset": 0,
+    "count": 1163,
+    "took": 27
+  },
+  "data": [
+    {
+      "id": "1B2C3D4D-592E-11E6-A0F5-48E229C466BA",
+      "type": "standards",
+      "attributes": {
+        "guid": "1B2C3D4D-592E-11E6-A0F5-48E229C466BA",
+        "seq": 32,
+        "level": 3,
+        "label": "Objective",
+        "status": "active",
+        "standard_type": "objective",
+        "date_modified_utc": "2016-08-05 14:22:31",
+        "date_deleted_utc": null,
+        "number": {
+          "raw": "33",
+          "enhanced": "WV.CCRS.SOC.9-12.PF.SS.C.33",
+          "prefix_enhanced": "WV.CCRS.SOC.9-12.PF.SS.C.33",
+          "root_enhanced": "WV.CCRS.SOC.9-12.PF.SS.C.33"
+        },
+        "statement": {
+          "descr": "Evaluate the impact of consumer decisions.",
+          "combined_descr": "Social Studies: Personal Finance. Evaluate the impact of consumer decisions."
+        },
+        "section": {
+          "guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+          "descr": "Personal Finance"
+        }
+      },
+      "relationships": {
+        "parent": { "data": {} },
+        "children": {
+          "data": [
+            { "type": "standards", "id": "1B2C3D4E-592E-11E6-A0F5-48E229C466BA" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2C4A9F71-592E-11E6-A0F5-48E229C466BA",
+      "type": "standards",
+      "attributes": {
+        "guid": "2C4A9F71-592E-11E6-A0F5-48E229C466BA",
+        "seq": 34,
+        "level": 4,
+        "label": "Sub-objective",
+        "status": "deleted",
+        "standard_type": "objective",
+        "date_modified_utc": "2019-03-11 09:05:02",
+        "date_deleted_utc": "2019-03-11 09:05:02",
+        "number": {
+          "raw": null,
+          "enhanced": null,
+          "prefix_enhanced": null,
+          "root_enhanced": null
+        },
+        "statement": {
+          "descr": "Retired sub-objective.",
+          "combined_descr": "Social Studies: Personal Finance. Retired sub-objective."
+        },
+        "section": {
+          "guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+          "descr": "Personal Finance"
+        }
+      },
+      "relationships": {
+        "parent": {
+          "data": { "type": "standards", "id": "1B2C3D4D-592E-11E6-A0F5-48E229C466BA" }
+        },
+        "children": { "data": [] }
+      }
+    }
+  ]
+}

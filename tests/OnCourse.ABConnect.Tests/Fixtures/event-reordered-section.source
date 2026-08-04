@@ -1,0 +1,31 @@
+One events resource object: a section that was reordered.
+
+Verbatim from a live sample, gate G-4 result in 01-sdk-v3.md section 12, run 2026-08-02 against devel
+partner sws:
+
+  affected_properties non-empty example captured:
+  {"name":"section.seq","previous_value":22,"new_value":19} on a reordered/section event
+
+The affected_properties element in this file is that capture, unchanged. It is the whole reason the
+fixture exists: THE KEY IS "name", NOT "property". Section 7.5 of the specification originally wrote
+AffectedProperty(string? Property, ...) with no JsonPropertyName, which under snake-case naming binds
+to "property" and would have left the member permanently null under
+UnmappedMemberHandling.Skip. G-4 caught it. A test that reads this fixture and asserts
+Property == "section.seq" is the regression guard for that defect.
+
+Also verbatim: change_type "reordered" and target "section" are both in G-4's observed value sets.
+"reordered" is one of the eleven change_type values live sampling found, nine more than the AB Connect
+documentation names, which is why ABEventAttributes.ChangeType is an open string rather than an enum
+(section 7.3).
+
+previous_value and new_value are JSON numbers here and JSON strings in
+event-updated-numbering-standard.json. AB Connect states only that they "are of variant types" and
+publishes no schema, https://developerdocs.instructure.com/services/ab-connect/reference/events.md,
+which is why they are exposed as JsonElement.
+
+Assembled for this fixture, not observed live: the event id, seq, date_utc, and the three GUIDs, which
+reuse the document and section GUIDs from the other standards fixtures so a test can join them.
+
+All three relationships are the empty wrapper {"data":{}}. G-4 recorded that form explicitly:
+"Relationship data is an empty JSON object {}, never JSON null, when a to-one relationship has no
+reference." Each must read as an ABRelationshipRef with a null Id and a null Type, and must not throw.

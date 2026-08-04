@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "count": 1471199,
+    "took": 2184,
+    "facets": [
+      {
+        "facet_type": "section",
+        "count": 10842,
+        "details": [
+          {
+            "count": 1163,
+            "data": {
+              "guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+              "descr": "Personal Finance"
+            }
+          },
+          {
+            "count": 902,
+            "data": {
+              "guid": "A41C7E91-592E-11E6-A0F5-48E229C466BA",
+              "descr": "Civics and Government"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "data": []
+}

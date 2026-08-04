@@ -1,0 +1,21 @@
+{
+  "errors": [
+    {
+      "status": "400",
+      "title": "Bad Request",
+      "detail": "Unknown property 'document.titel' in filter expression.",
+      "source": {
+        "pointer": "/data/attributes/document.titel",
+        "parameter": "filter[standards]"
+      }
+    },
+    {
+      "status": "400",
+      "title": "Bad Request",
+      "detail": "Unknown field 'number.alternat' requested.",
+      "source": {
+        "parameter": "fields[standards]"
+      }
+    }
+  ]
+}

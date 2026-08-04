@@ -9,28 +9,90 @@ on:
       - master
   workflow_dispatch:
 
+# Least privilege: nothing in this workflow writes to the repository.
+permissions:
+  contents: read
+
+env:
+  # Gate G-9. Raising this is fine; lowering it is a decision, not a fix.
+  COVERAGE_FLOOR: 85
+
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [net6.0, net7.0]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: |
-            6.0.x
-            7.0.x
-      
-      - name: Restore test dependencies
-        run: dotnet restore
 
+      # global-json-file, not dotnet-version: the repository pins an SDK feature band, and 8.0.1xx and
+      # 8.0.4xx ship different analyzer versions. Letting CI resolve 8.0.x independently is how a build
+      # passes on a developer machine and fails here on a rule neither of them chose.
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore OnCourse.ABConnect.sln
+
+      # TreatWarningsAsErrors is set in both project files, so a warning already fails the build.
+      # -warnaserror is here so that an SDK-level or analyzer warning outside those projects fails too.
       - name: Build
-        run: dotnet build -c release -f ${{ matrix.target }} --no-restore
+        run: dotnet build OnCourse.ABConnect.sln -c Release --no-restore -warnaserror
+
+      # The Live trait needs devel partner credentials, which CI does not have. Excluded by default;
+      # the live contract tests for gates G-1 through G-5 and G-8 are a manual pre-release step.
+      - name: Test
+        run: >
+          dotnet test OnCourse.ABConnect.sln
+          -c Release
+          --no-build
+          --filter "Category!=Live"
+          --settings coverage.runsettings
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Enforce coverage floor
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          report=$(find ./TestResults -name 'coverage.cobertura.xml' -print | head -n 1)
+          if [ -z "$report" ]; then
+            echo "No Cobertura coverage report was produced under ./TestResults."
+            echo "Gate G-9 fails: coverage cannot be verified."
+            exit 1
+          fi
+          echo "Coverage report: $report"
+
+          # coverage.runsettings filters the report down to the OnCourse.ABConnect assembly, so the
+          # root element's line-rate is the SDK's line rate.
+          rate=$(sed -n 's/.*<coverage[^>]*line-rate="\([0-9.]*\)".*/\1/p' "$report" | head -n 1)
+          if [ -z "$rate" ]; then
+            echo "Could not read line-rate from $report."
+            echo "Gate G-9 fails: coverage cannot be verified."
+            exit 1
+          fi
+
+          percent=$(awk -v r="$rate" 'BEGIN { printf "%.2f", r * 100 }')
+          echo "SDK line coverage: ${percent}% (floor ${COVERAGE_FLOOR}%)"
+          echo "SDK line coverage: **${percent}%** (floor ${COVERAGE_FLOOR}%)" >> "$GITHUB_STEP_SUMMARY"
+
+          awk -v p="$percent" -v floor="$COVERAGE_FLOOR" 'BEGIN { exit (p + 0 >= floor + 0) ? 0 : 1 }' || {
+            echo "Gate G-9 fails: line coverage ${percent}% is below the ${COVERAGE_FLOOR}% floor."
+            exit 1
+          }
+
+      # The README samples are compiled by ReadmeSampleTests in the test project, so they are covered
+      # by the test step above and need no separate step here.
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./TestResults
+          if-no-files-found: warn

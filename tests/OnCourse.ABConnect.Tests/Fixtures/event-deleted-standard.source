@@ -1,0 +1,33 @@
+One events resource object: a standard that was deleted. This is the relationship-shape fixture for
+gate G-4's single most consequential finding.
+
+Verbatim from a live sample, gate G-4 result in 01-sdk-v3.md section 12, run 2026-08-02 against devel
+partner sws:
+
+  standard relationship: populated, captured on a deleted/standard event:
+  "standard":{"data":{"type":"standards","id":"26998816-1a35-11eb-bb5b-0e20088bb29a"}}
+
+  deleted_standard relationship: never populated. Across all ~2,100 events sampled, including every
+  deleted- and removed-typed event checked (roughly 1,000 of the 30,146 such events on the account),
+  deleted_standard.data was consistently the empty object {}. The standard being deleted is instead
+  referenced through the plain standard relationship on the deleted event.
+
+Both blocks in this file are those captures. What a test must assert from them:
+  - Relationships.Standard.Id is the deleted standard's GUID. A soft-delete design reads the deleted
+    standard from HERE, not from DeletedStandard (02-scheduled-pull.md depends on this).
+  - Relationships.DeletedStandard is NOT null; it is an ABRelationshipRef whose Id and Type are both
+    null. Testing "DeletedStandard is not null" as a proxy for "a standard was named" is wrong against
+    live data and this fixture proves it.
+  - Deserializing {"data":{}} does not throw.
+
+Also verbatim: change_type "deleted" with target "standard". G-4 recorded that "deleted" only ever
+occurred with target "standard" while "removed" only occurred with target "section" or "document",
+which is what makes ABEvent.IsDeliveryEvent's target-and-change-type pair meaningful: this event is
+NOT a delivery event, and IsDeliveryEvent must return false for it.
+
+affected_properties is present and empty here, so a test can pin the section 7.1 convention on it: an
+empty list means the array was present and empty, not absent. Contrast event-added-document.json,
+where the member is omitted entirely and the property must be null.
+
+Assembled for this fixture, not observed live: the event id, seq, date_utc, document_guid, and
+section_guid.

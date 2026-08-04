@@ -1,0 +1,23 @@
+One events resource object: a document added to the account's license. This is the deliverability
+event, the only kind of event in this fixture set for which ABEvent.IsDeliveryEvent is true.
+
+Structure and semantics:
+  https://developerdocs.instructure.com/services/ab-connect/reference/events.md
+  which names "added" and "removed" as change_type values and "document" as a target, and states:
+  "Unlike Standard change Events, deliverability Events should be acted upon immediately to ensure
+  your system is in line with license agreements".
+  01-sdk-v3.md section 7.3, which turns that sentence into IsDeliveryEvent.
+Gate G-4 confirmed both "added" and "document" occur live on devel partner sws, 2026-08-02.
+
+Everything else here is assembled, not observed live: the event id, seq, and date_utc. The document
+GUID is the one gate G-3 used, reused so tests can join this event to the standards fixtures.
+
+Deliberate omissions, each of which a test should assert on:
+  - There is no "relationships" member, so ABEvent.Relationships must be null. A delivery event names
+    no standard.
+  - There is no "affected_properties" member, so ABEventAttributes.AffectedProperties must be NULL,
+    not empty. Compare event-deleted-standard.json, where it is present and empty and must be an
+    empty list. Section 7.1's convention is that null means the array was absent and empty means it
+    was present and empty; these two fixtures together are what stop an implementation from
+    collapsing them.
+  - There is no "section_guid" member, which is correct for a document-target event.

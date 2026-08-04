@@ -1,0 +1,134 @@
+name: Live Contract Gates
+
+# The live contract tests. They are the only tests in this repository that touch the network, so they
+# are kept out of CI and run here instead, on demand: before a release, or when AB Connect is suspected
+# of having changed a field name, an event shape, or a host.
+#
+# Run this when you want to know that the vendor still behaves the way the SDK expects. Nothing runs it
+# for you, deliberately: see the note on the schedule below.
+#
+# CREDENTIALS. These are PRODUCTION AB Connect credentials and there is no devel account. They cannot
+# be rotated cheaply, so they are handled accordingly:
+#
+#   - They are ENVIRONMENT secrets on the 'live-contract' environment, not repository secrets, so only
+#     the job below can read them. Setting them at repository level would expose them to every workflow
+#     in this public repository and skip the approval gate entirely.
+#   - That environment requires a reviewer and is restricted to protected branches, so the key is
+#     injected only into a run a human just approved, from a workflow that reached master through
+#     review. A pushed branch cannot dispatch a workflow that prints it.
+#   - Every call these tests make is a GET. The suite reads; it never writes.
+#
+#   ABCONNECT_PARTNER_ID   the partner id
+#   ABCONNECT_PARTNER_KEY  the partner key, never printed; the tests redact it from URIs and bodies
+#
+# The tests themselves report as skipped when the credentials are absent, so the "Verify credentials"
+# step below is what turns a missing or expired secret into a red build here rather than a job that
+# quietly skips everything it was asked to check.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_address:
+        description: "Override the AB Connect base address (blank uses the SDK default)"
+        required: false
+        type: string
+      document_guid:
+        description: "Override the document GUID the identifier-spelling gate probes (blank uses the recorded default)"
+        required: false
+        type: string
+
+  # No schedule on purpose. The 'live-contract' environment requires a human to approve each run, and a
+  # cron trigger would queue a run every week that sits waiting for an approval nobody is expecting and
+  # then expires. Vendor-drift checking is therefore a deliberate pre-release step, not a background
+  # one: run this workflow before cutting a release.
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+
+    # The credentials live in this environment, not at repository level, and the environment requires
+    # a reviewer. So the production key is injected only into a run a human has just approved, on an
+    # ephemeral hosted runner that is destroyed afterwards.
+    environment: live-contract
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # global-json-file, not dotnet-version: the repository pins an SDK feature band, and 8.0.1xx and
+      # 8.0.4xx ship different analyzer versions. Letting CI resolve 8.0.x independently is how a build
+      # passes on a developer machine and fails here on a rule neither of them chose.
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore OnCourse.ABConnect.sln
+
+      - name: Build
+        run: dotnet build OnCourse.ABConnect.sln -c Release --no-restore -warnaserror
+
+      # Fail before spending a network call if the secrets are not configured, so the reason reads
+      # plainly in the job log rather than as six assertion failures.
+      - name: Verify credentials are present
+        env:
+          ABCONNECT_PARTNER_ID: ${{ secrets.ABCONNECT_PARTNER_ID }}
+          ABCONNECT_PARTNER_KEY: ${{ secrets.ABCONNECT_PARTNER_KEY }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "${ABCONNECT_PARTNER_ID}" ]  || missing="${missing} ABCONNECT_PARTNER_ID"
+          [ -n "${ABCONNECT_PARTNER_KEY}" ] || missing="${missing} ABCONNECT_PARTNER_KEY"
+          if [ -n "${missing}" ]; then
+            echo "Missing required repository secret(s):${missing}"
+            echo "Add them under Settings > Secrets and variables > Actions, then re-run."
+            exit 1
+          fi
+          echo "Both credential secrets are present."
+
+      # --logger "console;verbosity=detailed" is not optional here. Every gate prints the redacted
+      # request URI and the response it read, and that evidence is the actual deliverable of this run.
+      - name: Run live contract gates
+        env:
+          ABCONNECT_PARTNER_ID: ${{ secrets.ABCONNECT_PARTNER_ID }}
+          ABCONNECT_PARTNER_KEY: ${{ secrets.ABCONNECT_PARTNER_KEY }}
+          ABCONNECT_BASE_ADDRESS: ${{ inputs.base_address }}
+          ABCONNECT_DOCUMENT_GUID: ${{ inputs.document_guid }}
+        run: >
+          dotnet test OnCourse.ABConnect.sln
+          -c Release
+          --no-build
+          --filter "Category=Live"
+          --logger "console;verbosity=detailed"
+          --logger "trx;LogFileName=live-contract.trx"
+          --results-directory ./TestResults
+
+      # A skip here means the credentials reached the tests but were rejected as blank, which the step
+      # above should already have caught. Fail loudly rather than let a skipped gate look scheduled and
+      # satisfied.
+      - name: Confirm the gates actually ran
+        run: |
+          set -euo pipefail
+          trx=$(find ./TestResults -name 'live-contract.trx' -print | head -n 1)
+          if [ -z "${trx}" ]; then
+            echo "No test results were produced, so no gate ran."
+            exit 1
+          fi
+          if grep -q 'outcome="NotExecuted"' "${trx}"; then
+            echo "At least one live gate was skipped. The gates must run in this workflow."
+            exit 1
+          fi
+          echo "Every live gate executed."
+
+      - name: Upload gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-contract-evidence
+          path: ./TestResults
+          if-no-files-found: warn

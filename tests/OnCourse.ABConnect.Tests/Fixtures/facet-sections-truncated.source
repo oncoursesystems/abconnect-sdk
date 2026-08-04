@@ -1,0 +1,33 @@
+A TRUNCATED facet response for the sections facet, using the "facet_type" spelling of the name member.
+
+ASSEMBLED to the documented facet shape; see facet-authorities.source for the structure and the vendor
+citations. This fixture is deliberately internally inconsistent in one specific way, and that
+inconsistency is the whole point: facets[].count is 10842 while details carries 2 entries.
+
+Two things it pins, both of which are real risks rather than hypotheticals.
+
+1. TRUNCATION MUST BE VISIBLE.
+   https://developerdocs.instructure.com/services/ab-connect/introduction/facets.md states "AB Connect
+   does not support paging of facet data" and "When requesting facets with a large number of values
+   (count > 10,000) only the first 10,000 entries are returned". 01-sdk-v3.md section 6.3 forbids
+   GetFacetAsync from attempting a second call, so the only honest response is to report the shortfall.
+   A test must assert ABFacet.IsTruncated is TRUE here and ReportedCount is 10842, because
+   ReportedCount > Values.Count. A projection that returned only the values, or that overwrote
+   ReportedCount with Values.Count, would make a truncated facet indistinguishable from a complete one,
+   and a consumer would enumerate 10,000 sections out of 10,842 and believe it had them all.
+   The real detail count is shortened to 2 here rather than padded to 10,000 so the file stays readable;
+   only the relationship ReportedCount > Values.Count is load-bearing, not the specific sizes.
+
+2. THE NAME MEMBER HAS TWO SPELLINGS.
+   This is the only fixture that uses "facet_type" instead of "facet". The payloads this SDK's
+   predecessor consumed in production carried "facet", while the AB Connect documentation and
+   01-sdk-v3.md both refer to the member as the facet_type discriminator. ABFacetBlock accepts either
+   and reads whichever is present, because one of the two spellings being wrong must not silently
+   produce an empty facet. A test must read ABFacetNames.Sections off this fixture and off
+   facet-authorities.json's "facet" member and get the right name from both.
+
+Section counts and open issue 8: the count here is over 10,000 on purpose. 01-sdk-v3.md open issue 8
+records that if the OnCourse license exceeds 10,000 sections then section enumeration by facet is not
+viable at all and the hierarchy must be derived from standards rows instead. This fixture is what that
+decision looks like arriving in code: IsTruncated true on ABFacetNames.Sections is the signal to switch
+strategies, and it is why the XML documentation on ABFacetNames.Sections says to always check it.

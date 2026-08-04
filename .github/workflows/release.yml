@@ -5,45 +5,75 @@ on:
     types: [published]
   workflow_dispatch:
 
+# Least privilege: publishing authenticates to NuGet with its own key, so the GitHub token needs
+# nothing beyond reading this repository.
+permissions:
+  contents: read
+
 jobs:
-  build:
-    runs-on: self-hosted
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [net6.0, net7.0]
+  publish:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # global-json-file, not dotnet-version: the repository pins an SDK feature band, and 8.0.1xx and
+      # 8.0.4xx ship different analyzer versions. Letting CI resolve 8.0.x independently is how a build
+      # passes on a developer machine and fails here on a rule neither of them chose.
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            6.0.x
-            7.0.x
+          global-json-file: global.json
 
-      - name: Restore test dependencies
-        run: dotnet restore
+      - name: Restore
+        run: dotnet restore OnCourse.ABConnect.sln
 
       - name: Build
-        run: dotnet build -c release -f ${{ matrix.target }} --no-restore
+        run: dotnet build OnCourse.ABConnect.sln -c Release --no-restore -warnaserror
 
-  publish:
-    runs-on: self-hosted
-    needs: build
+      # The Live trait needs devel partner credentials, which CI does not have. This step also covers
+      # gate G-7: the README ships as the package README, and ReadmeSampleTests compiles every fence
+      # in it against the built assembly, so a sample that does not compile fails here.
+      - name: Test
+        run: dotnet test OnCourse.ABConnect.sln -c Release --no-build --filter "Category!=Live"
 
-    steps:
+      # The version is the release tag with any leading "v" removed. NuGet rejects "v3.0.0" as a
+      # version string outright, so passing the raw ref name fails the pack for every tag written in
+      # the conventional "v"-prefixed form. Stripping it here accepts both tag styles.
+      - name: Resolve package version from the release tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          version="${tag#v}"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'; then
+            echo "The tag '$tag' does not resolve to a NuGet version (got '$version')."
+            exit 1
+          fi
+          echo "Packing version $version from tag $tag"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # The test project sets IsPackable=false, so only the SDK is packed.
       - name: Build NuGet Package
-        run: dotnet pack -c Release -p:PackageVersion=${{  github.ref_name }}
+        run: >
+          dotnet pack src/OnCourse.ABConnect/OnCourse.ABConnect.csproj
+          -c Release
+          --no-build
+          -p:PackageVersion=${{ steps.version.outputs.version }}
+          -o ./artifacts
 
       - name: Upload nuget package artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: Nuget package
-          path: "**/*.nupkg"
+          name: nuget-package
+          path: ./artifacts/*.nupkg
 
       - name: Publish NuGet Package
-        run: dotnet nuget push "**/*.nupkg" -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+        run: >
+          dotnet nuget push "./artifacts/*.nupkg"
+          -k ${{ secrets.NUGET_TOKEN }}
+          -s https://api.nuget.org/v3/index.json
+          --skip-duplicate

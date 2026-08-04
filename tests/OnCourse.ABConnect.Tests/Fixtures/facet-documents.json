@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "count": 1210,
+    "took": 63,
+    "facets": [
+      {
+        "facet": "document",
+        "count": 2,
+        "details": [
+          {
+            "count": 1163,
+            "data": {
+              "guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+              "adopt_year": "2016",
+              "descr": "College and Career Readiness Standards for Social Studies"
+            }
+          },
+          {
+            "count": 47,
+            "data": {
+              "guid": "9D85340D-592E-11E6-A0F5-48E229C466BA",
+              "adopt_year": null,
+              "descr": "College and Career Readiness Standards for the Arts"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "data": []
+}

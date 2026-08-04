@@ -1,0 +1,23 @@
+A facet response for the publications facet: one publication.
+
+ASSEMBLED to the documented facet shape; see facet-authorities.source for the structure, the vendor
+citations, and what each count level means. The publication reuses the one embedded in
+standard-full-fields.json.
+
+What this fixture is for specifically:
+  - ABFacetNames.Publications is "document.publication", and GetPublicationFacetAsync projects each
+    detail into Publication, the THIN facet shape, not StandardPublication.
+  - That distinction is the point of the fixture. Publication carries Guid, Type, Code, Acronym,
+    SourceUrl, and Description, and nothing else. A facet response never carries regions, authorities,
+    or a publication_type, which is exactly why 01-sdk-v3.md section 7.4 gives the facet shape its own
+    type: a caller holding a Publication cannot reach for a property that would always be null.
+    Compare standard-full-fields.json, whose embedded document.publication does carry regions,
+    authorities, and publication_type.
+  - A test should confirm that "source_url" binds to SourceUrl. Publication is a positional record
+    whose members are bound by the snake-case naming policy, and source_url is the one member on it
+    where a naming-policy failure would be silent rather than obvious.
+  - This fixture also exercises the reflection resolver behind ABConnectJson.Default. Facet details
+    deserialize through a caller-chosen TValue on GetFacetAsync, so the options chain a
+    DefaultJsonTypeInfoResolver behind the two source-generated contexts. Publication is registered on
+    the generated context as well, so it resolves either way; a consumer-defined facet type would not
+    be, and that is the case the reflection resolver exists for.

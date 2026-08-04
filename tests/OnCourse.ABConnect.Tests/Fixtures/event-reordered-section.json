@@ -1,0 +1,21 @@
+{
+  "id": "0c9a4f16-6b21-4c8e-9a3f-2d5e7b1c8a04",
+  "type": "events",
+  "attributes": {
+    "seq": 703118,
+    "date_utc": "2026-07-29 03:14:07",
+    "change_type": "reordered",
+    "target": "section",
+    "guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+    "document_guid": "9D85340C-592E-11E6-A0F5-48E229C466BA",
+    "section_guid": "A41C7E90-592E-11E6-A0F5-48E229C466BA",
+    "affected_properties": [
+      { "name": "section.seq", "previous_value": 22, "new_value": 19 }
+    ]
+  },
+  "relationships": {
+    "standard": { "data": {} },
+    "nondeliverable_standard": { "data": {} },
+    "deleted_standard": { "data": {} }
+  }
+}

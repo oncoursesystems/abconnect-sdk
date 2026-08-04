@@ -1,0 +1,29 @@
+One page of an events list response, in ascending seq order.
+
+The five events in "data" are exactly the five single-event fixtures in this directory, unchanged:
+event-added-document.json, event-reordered-section.json, event-updated-numbering-standard.json,
+event-deleted-standard.json, and event-nondeliverable-standard.json. Their provenance, and which parts
+are verbatim gate G-4 captures, is documented in each of those .source files. This envelope exists so
+that feed-level tests have a real page to walk, while converter-level tests can read a single resource
+object without an envelope in the way.
+
+Envelope structure:
+  https://developerdocs.instructure.com/services/ab-connect/introduction/paging.md
+  https://developerdocs.instructure.com/services/ab-connect/reference/events.md
+  01-sdk-v3.md sections 5.5 and 6.1.
+
+links.self shows the request the version 3 builder emits for a delta read: filter[events]=(seq GT n),
+sort[events]=seq, and all eleven EventFieldSet.Full field names. AB Connect's default ordering is by
+relevance rather than sequence, so the sort must be requested every time (section 5.4 rule 7). The
+query carries no credentials; a fixture must never contain a partner id or a signature.
+
+Deliberate properties of this fixture:
+  - The sequence numbers are 702955, 703118, 703204, 703311, 703486: ascending but NOT contiguous.
+    AB Connect documents this: "Sequence numbers will not appear incremental ... Events received by any
+    individual partner will not have incremental numbers". Section 6.1 requires that the SDK perform no
+    gap detection and log nothing about gaps, so a test that reads this page must not treat the gaps as
+    an error.
+  - links.next is null and meta.count is 5, which is the last page of a walk. Section 6.1's traversal
+    re-anchors on the highest seq seen (703486) rather than following links.next at all.
+  - One of the five is a deliverability event and four are standard-level changes, so a routing test
+    can partition the page by ABEvent.IsDeliveryEvent and get 1 and 4.

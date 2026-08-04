@@ -1,0 +1,28 @@
+One page of a standards list response: links, meta, and two standards.
+
+Envelope structure (links / meta / data, and meta carrying limit, offset, count, took):
+  https://developerdocs.instructure.com/services/ab-connect/introduction/paging.md
+  01-sdk-v3.md section 5.5.
+
+Verbatim from a live run:
+  meta.count = 1163, the count gate G-3 observed for document 9D85340C-592E-11E6-A0F5-48E229C466BA
+  on devel partner sws, 2026-08-02 (01-sdk-v3.md section 12, G-3 result).
+  links.self shows the percent-encoded filter expression the version 3 query builder emits, per
+  section 5.4 rule 2. It carries no credentials: a fixture must never contain a partner id or a
+  signature, and this one is the reason ABConnectResponseMapper redacts body excerpts, because
+  AB Connect echoes the request query back in links.self.
+
+Assembled for this fixture, not observed live: both standards, their GUIDs, and their text.
+
+Deliberate properties of this fixture:
+  - The second standard has status "deleted" with a non-null date_deleted_utc. AB Connect returns
+    deleted standards under StandardStatusScope.ActiveAndDeleted, which is the default
+    (01-sdk-v3.md section 5.4 rule 3); the account gate G-5 ran against had 51,705 of them.
+  - The first standard's parent is the empty wrapper {"data":{}}: a root standard, in the form gate
+    G-4 observed for an unpopulated to-one relationship. It must read as ABRelationshipRef with a
+    null Id and a null Type, never throw, and never be mistaken for an absent relationship.
+  - The first standard has one child, the second has "children": {"data": []}. An empty list means the
+    standard is a leaf; a null list would mean the array was absent. Section 7.1 forbids collapsing
+    the two.
+  - The second standard's number members are all null, which section 7.4 documents as normal:
+    "some Standards do not have numbers".

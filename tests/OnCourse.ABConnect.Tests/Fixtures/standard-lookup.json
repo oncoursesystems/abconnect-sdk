@@ -1,0 +1,35 @@
+{
+  "meta": {
+    "took": 9
+  },
+  "data": {
+    "id": "26998816-1A35-11EB-BB5B-0E20088BB29A",
+    "type": "standards",
+    "attributes": {
+      "guid": "26998816-1A35-11EB-BB5B-0E20088BB29A",
+      "seq": 118,
+      "level": 4,
+      "label": "Sub-objective",
+      "status": "deleted",
+      "standard_type": "objective",
+      "date_modified_utc": "2021-04-19 17:41:08",
+      "date_deleted_utc": "2021-04-19 17:41:08",
+      "number": {
+        "raw": "a.",
+        "enhanced": "MU:CT.HSAdv.Pr4.a",
+        "prefix_enhanced": "MU:CT.HSAdv.Pr4.a",
+        "root_enhanced": "MU:CT.HSAdv.Pr4.a"
+      },
+      "statement": {
+        "descr": "Retired sub-objective retained for reference.",
+        "combined_descr": "Music: Advanced. Retired sub-objective retained for reference."
+      }
+    },
+    "relationships": {
+      "parent": {
+        "data": { "type": "standards", "id": "26998815-1A35-11EB-BB5B-0E20088BB29A" }
+      },
+      "children": { "data": [] }
+    }
+  }
+}
