@@ -111,9 +111,12 @@ public sealed class ThrottlingTests
     {
         TransportVirtualClock clock = new();
 
-        // A deliberately fast replenishment so the retried attempt does not spend real time waiting for
-        // a token. The rate is irrelevant to what this test asserts, which is who drains the bucket.
-        ABConnectOptions options = NewOptions(o => o.Throttle.TokensPerSecond = 1000);
+        // The default rate, 5 per second, on purpose. The bucket replenishes on its own clock, so a
+        // faster rate would race the assertion below that the penalty left the bucket empty: at 1000
+        // per second a token reappears within a millisecond and the drain looks like it did not happen.
+        // One replenishment period is 200 ms, which is an eternity next to the microseconds between the
+        // drain and the sample, and it is the only real-clock wait in this test.
+        ABConnectOptions options = NewOptions();
         using PenaltySpy spy = new(new ABConnectRateLimiterProvider(Options.Create(options), clock));
 
         using FakeHttpMessageHandler fake = new();
@@ -141,7 +144,10 @@ public sealed class ThrottlingTests
     public async Task APenaltyDrainsTheBurstAndHoldsTheNextRequestForItsWholeDuration()
     {
         TransportVirtualClock clock = new();
-        ABConnectOptions options = NewOptions(o => o.Throttle.TokensPerSecond = 1000);
+
+        // The default rate, for the reason given in the 429 test above: the bucket replenishes on its
+        // own clock, so the assertion that the penalty emptied it must not race a refill.
+        ABConnectOptions options = NewOptions();
         using ABConnectRateLimiterProvider provider = new(Options.Create(options), clock);
 
         provider.ApplyPenalty(TimeSpan.FromSeconds(30));
