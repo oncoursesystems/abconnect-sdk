@@ -28,24 +28,27 @@ on:
     # Mondays at 07:00 UTC.
     - cron: "0 7 * * 1"
 
+permissions:
+  contents: read
+
 jobs:
   live:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
+
+    # The credentials live in this environment, not at repository level, and the environment requires
+    # a reviewer. So the production key is injected only into a run a human has just approved, on an
+    # ephemeral hosted runner that is destroyed afterwards.
+    environment: live-contract
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # DOTNET_INSTALL_DIR is required on these self-hosted runners: the runner account cannot write
-      # to /usr/share/dotnet, so setup-dotnet fails with a permission error unless it is pointed at a
-      # directory the job owns.
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-        env:
-          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
 
       - name: Restore
         run: dotnet restore OnCourse.ABConnect.sln
