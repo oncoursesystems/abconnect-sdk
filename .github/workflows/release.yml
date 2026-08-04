@@ -5,14 +5,23 @@ on:
     types: [published]
   workflow_dispatch:
 
-# Least privilege: publishing authenticates to NuGet with its own key, so the GitHub token needs
-# nothing beyond reading this repository.
+# Least privilege. id-token: write is what lets this workflow request the OIDC token that NuGet
+# trades for a publishing key; it grants nothing else, and in particular no write access to the
+# repository. Everything else stays read-only.
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+
+    # NuGet's trusted publishing policy for this repository names this environment, so the token
+    # exchange only succeeds from a run deployed into it. The environment requires a reviewer and is
+    # restricted to protected branches, which means a push to nuget.org needs a human to approve the
+    # run first. Without it, any workflow_dispatch of this file could mint a publishing key.
+    environment: nuget-publish
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -71,9 +80,28 @@ jobs:
           name: nuget-package
           path: ./artifacts/*.nupkg
 
+      # Trusted publishing, so there is no long-lived NuGet key in this repository or the organization
+      # to leak, expire unnoticed, or rotate. GitHub signs a token describing this run, nuget.org
+      # validates it against the policy naming this repository, this workflow file, and the
+      # nuget-publish environment, and returns a publishing key.
+      #
+      # The key it returns lives for one hour and can only be issued once per token, so this step sits
+      # immediately before the push rather than at the top of the job: a key fetched before the build
+      # and tests would be burning most of its life waiting on them.
+      #
+      # 'user' is the nuget.org account that owns the trusted publishing policy, which has to be the
+      # account that owns the package. It is deliberately literal instead of a secret: package
+      # ownership is public on nuget.org, so this reveals nothing, and a value stored out of sight is
+      # a value that goes stale without anyone noticing.
+      - name: Exchange the OIDC token for a short-lived NuGet key
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: OncourseSystems
+
       - name: Publish NuGet Package
         run: >
           dotnet nuget push "./artifacts/*.nupkg"
-          -k ${{ secrets.NUGET_TOKEN }}
+          -k ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
           -s https://api.nuget.org/v3/index.json
           --skip-duplicate
