@@ -17,12 +17,30 @@ jobs:
     runs-on: ubuntu-latest
 
     # NuGet's trusted publishing policy for this repository names this environment, so the token
-    # exchange only succeeds from a run deployed into it. The environment requires a reviewer and is
-    # restricted to protected branches, which means a push to nuget.org needs a human to approve the
-    # run first. Without it, any workflow_dispatch of this file could mint a publishing key.
+    # exchange only succeeds from a run deployed into it. The environment requires a reviewer, so a
+    # push to nuget.org needs a human to approve the run first; without it, any workflow_dispatch of
+    # this file could mint a publishing key.
+    #
+    # Its deployment rule is a tag pattern, not "protected branches only". This workflow publishes on
+    # a release, which runs against a tag ref, and a tag is not a branch: the protected-branches rule
+    # rejects the deployment outright with "Tag X is not allowed to deploy to nuget-publish".
     environment: nuget-publish
 
     steps:
+      # Before the build rather than beside the login step it guards. The variable is the one input to
+      # this job that nothing else validates, and learning it is missing after a full build and test
+      # run wastes the reviewer's approval along with the time.
+      - name: Verify the NuGet account is configured
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${{ vars.NUGET_USER }}" ]; then
+            echo "The NUGET_USER repository variable is not set."
+            echo "Set it to the nuget.org username that created the trusted publishing policy."
+            exit 1
+          fi
+          echo "Publishing as nuget.org user '${{ vars.NUGET_USER }}'."
+
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -89,15 +107,23 @@ jobs:
       # immediately before the push rather than at the top of the job: a key fetched before the build
       # and tests would be burning most of its life waiting on them.
       #
-      # 'user' is the nuget.org account that owns the trusted publishing policy, which has to be the
-      # account that owns the package. It is deliberately literal instead of a secret: package
-      # ownership is public on nuget.org, so this reveals nothing, and a value stored out of sight is
-      # a value that goes stale without anyone noticing.
+      # 'user' is the personal nuget.org account that CREATED the policy, not the account that owns it
+      # and not the account that owns the package. Those differ here: the policy is owned by the
+      # OncourseSystems organization, because ownership is what scopes the returned key to that
+      # organization's packages, but the token endpoint looks the policy up by its creator. Passing
+      # the organization name fails with "No matching trust policy owned by user 'OncourseSystems'".
+      #
+      # It reads from a repository variable rather than sitting here literally, and the reason is the
+      # trigger. A release event runs the workflow file recorded at the tagged commit, so a wrong
+      # literal cannot be corrected by editing master: it takes deleting the tag, re-cutting the
+      # release, and approving the environment again. A variable is read when the job runs, so the
+      # same mistake becomes one edit in Settings and a re-run. A variable and not a secret because a
+      # username is not one, and because a value nobody can see is a value nobody notices going stale.
       - name: Exchange the OIDC token for a short-lived NuGet key
         uses: NuGet/login@v1
         id: nuget-login
         with:
-          user: OncourseSystems
+          user: ${{ vars.NUGET_USER }}
 
       - name: Publish NuGet Package
         run: >
