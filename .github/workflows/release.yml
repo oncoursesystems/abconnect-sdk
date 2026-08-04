@@ -33,13 +33,11 @@ jobs:
       - name: Build
         run: dotnet build OnCourse.ABConnect.sln -c Release --no-restore -warnaserror
 
-      # The Live trait needs devel partner credentials, which CI does not have.
+      # The Live trait needs devel partner credentials, which CI does not have. This step also covers
+      # gate G-7: the README ships as the package README, and ReadmeSampleTests compiles every fence
+      # in it against the built assembly, so a sample that does not compile fails here.
       - name: Test
         run: dotnet test OnCourse.ABConnect.sln -c Release --no-build --filter "Category!=Live"
-
-      # Gate G-7. The README is the package README, so a sample that does not compile must not ship.
-      - name: Check README samples compile
-        run: dotnet run --project tools/ReadmeFenceCheck/ReadmeFenceCheck.csproj -c Release -- README.md
 
       # The version is the release tag with any leading "v" removed. NuGet rejects "v3.0.0" as a
       # version string outright, so passing the raw ref name fails the pack for every tag written in
@@ -58,8 +56,7 @@ jobs:
           echo "Packing version $version from tag $tag"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      # ReadmeFenceCheck sets IsPackable=false and is not in the solution, and the test project sets
-      # IsPackable=false, so only the SDK is packed.
+      # The test project sets IsPackable=false, so only the SDK is packed.
       - name: Build NuGet Package
         run: >
           dotnet pack src/OnCourse.ABConnect/OnCourse.ABConnect.csproj
