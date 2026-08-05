@@ -5,9 +5,11 @@ namespace OnCourse.ABConnect.Queries;
 /// <c>with</c>.
 /// </summary>
 /// <remarks>
-/// An events query always emits <c>sort[events]=seq</c>. AB Connect's default ordering is by
-/// relevance, not by sequence, so ascending order has to be requested every single time; a delta
-/// pull that does not request it will advance its watermark past events it never saw.
+/// An events query always emits an explicit <c>sort[events]</c> on sequence, ascending by default
+/// (<c>seq</c>) or descending when <see cref="Order"/> asks for it (<c>-seq</c>). AB Connect's
+/// default ordering is by relevance, not by sequence, so the sort has to be requested every single
+/// time; a delta pull that does not request ascending order will advance its watermark past events
+/// it never saw.
 /// </remarks>
 public sealed record EventsQuery
 {
@@ -22,6 +24,14 @@ public sealed record EventsQuery
 
     /// <summary>Which page window to return. Defaults to the first page.</summary>
     public PageRequest Page { get; init; } = PageRequest.First;
+
+    /// <summary>
+    /// The direction to sort by sequence. Defaults to ascending, which every delta pull requires.
+    /// Descending is used only to read the head of the feed (its single highest sequence) in one
+    /// request; it must never drive a delta pull, because reading newest-first cannot advance a
+    /// watermark safely.
+    /// </summary>
+    public EventSequenceOrder Order { get; init; } = EventSequenceOrder.Ascending;
 
     /// <summary>
     /// An optional restriction on the standards the events must concern. AB Connect permits

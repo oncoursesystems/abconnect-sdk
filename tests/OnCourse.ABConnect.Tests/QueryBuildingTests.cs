@@ -364,6 +364,29 @@ public sealed class QueryBuildingTests
     }
 
     [Fact]
+    public void ADescendingEventsQueryEmitsMinusSeqToReadTheHeadOfTheFeed()
+    {
+        (string requestUri, _) = ABQueryStringBuilder.Build(
+            new EventsQuery
+            {
+                AfterSequence = 0,
+                Order = EventSequenceOrder.Descending,
+                Fields = EventFieldSet.Of("seq", "date_utc"),
+                Page = new PageRequest(0, 1),
+            },
+            new ABConnectOptions());
+
+        Assert.Equal(
+            "events" +
+            "?fields[events]=seq,date_utc" +
+            "&filter[events]=%28seq%20GT%200%29" +
+            "&sort[events]=-seq" +
+            "&limit=1" +
+            "&offset=0",
+            requestUri);
+    }
+
+    [Fact]
     public void AnEventsQueryWithAStandardScopeConjoinsTheScopeWithTheWatermark()
     {
         (string requestUri, _) = ABQueryStringBuilder.Build(

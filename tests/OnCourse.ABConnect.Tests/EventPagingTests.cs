@@ -52,6 +52,38 @@ public sealed class EventPagingTests
     }
 
     [Fact]
+    public async Task ReadHeadSequenceReturnsTheNewestSequenceFromOneDescendingRequest()
+    {
+        ABConnectOptions options = new();
+        FakeABConnectClient client = new(options);
+        client.OnGetEvents = (_, _) =>
+            FakeABConnectClient.EventsPage([FakeABConnectClient.EventWithSequence(987654)], reportedCount: 1);
+
+        ABConnectFeed feed = CreateFeed(client, options);
+
+        long? head = await feed.ReadHeadSequenceAsync();
+
+        Assert.Equal(987654, head);
+        EventsQuery query = Assert.Single(client.EventsQueries);
+        Assert.Equal(EventSequenceOrder.Descending, query.Order);
+        Assert.Equal(0, query.AfterSequence);
+        Assert.Equal(1, query.Page.Limit);
+    }
+
+    [Fact]
+    public async Task ReadHeadSequenceReturnsNullWhenTheFeedIsEmpty()
+    {
+        ABConnectOptions options = new();
+        FakeABConnectClient client = new(options);
+        client.OnGetEvents = (_, _) => FakeABConnectClient.EventsPage([], reportedCount: 0);
+
+        ABConnectFeed feed = CreateFeed(client, options);
+
+        Assert.Null(await feed.ReadHeadSequenceAsync());
+        Assert.Single(client.EventsQueries);
+    }
+
+    [Fact]
     public async Task ThreePagesReAnchorOnTheHighestSequenceWithOffsetZeroEveryTime()
     {
         ABConnectOptions options = new();

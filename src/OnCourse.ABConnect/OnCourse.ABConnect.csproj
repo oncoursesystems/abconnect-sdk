@@ -14,7 +14,7 @@
 
   <PropertyGroup>
     <PackageId>OnCourse.ABConnect</PackageId>
-    <Version>3.1.0</Version>
+    <Version>3.2.0</Version>
     <Company>OnCourse Systems For Education</Company>
     <Authors>OnCourse Systems For Education</Authors>
     <Product>Academic Benchmarks SDK for .NET</Product>

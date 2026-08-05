@@ -67,6 +67,25 @@ public interface IABConnectFeed
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Reads the head of the event feed: the single highest sequence number currently available, in
+    /// one request.
+    /// </summary>
+    /// <remarks>
+    /// This is how a cutover establishes its starting watermark. Seeding at the head means the first
+    /// delta pull reads only events raised after cutover, instead of replaying the entire history.
+    /// The read sorts newest-first and takes one row, so it never walks the feed.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>
+    /// The highest sequence, or <see langword="null"/> when AB Connect answered successfully and the
+    /// feed has no events. Null here means "answered, and there are none", never "something failed";
+    /// a failure throws.
+    /// </returns>
+    /// <exception cref="ABConnectRequestException">The request failed or its body could not be read.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task<long?> ReadHeadSequenceAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Reads a complete, verified snapshot of every standard in one document.
     /// </summary>
     /// <remarks>
