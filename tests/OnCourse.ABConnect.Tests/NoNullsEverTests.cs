@@ -19,13 +19,15 @@ namespace OnCourse.ABConnect.Tests;
 public sealed class NoNullsEverTests
 {
     /// <summary>
-    /// The only two methods allowed to return null, named individually so the exclusion cannot drift
-    /// into a blanket allowance. Both are probes documented as "answered, and there is none".
+    /// The only methods allowed to return null, named individually so the exclusion cannot drift into
+    /// a blanket allowance. All are probes documented as "answered, and there is none": the two
+    /// single-object lookups, and the feed-head read which returns null for an empty feed.
     /// </summary>
     private static readonly string[] DocumentedProbeMethods =
     [
         nameof(IABConnectFeed.ReadDocumentAsync),
         nameof(IABConnectFeed.ReadPublicationAsync),
+        nameof(IABConnectFeed.ReadHeadSequenceAsync),
     ];
 
     private const string StandardGuid = "1B2C3D4D-592E-11E6-A0F5-48E229C466BA";
@@ -118,12 +120,12 @@ public sealed class NoNullsEverTests
     }
 
     /// <summary>
-    /// The exclusion list names exactly two methods, both on the feed, both documented as answering
-    /// "there is none" rather than reporting a failure. If a third nullable-returning method is ever
-    /// added, the test above fails rather than the exclusion silently widening.
+    /// The exclusion list names exactly the probe methods, all on the feed, each documented as
+    /// answering "there is none" rather than reporting a failure. If any other nullable-returning
+    /// method is ever added, the test above fails rather than the exclusion silently widening.
     /// </summary>
     [Fact]
-    public void TheOnlyTwoNullableReturningMethodsAreTheNamedProbes()
+    public void TheOnlyNullableReturningMethodsAreTheNamedProbes()
     {
         NullabilityInfoContext nullability = new();
 
@@ -133,7 +135,11 @@ public sealed class NoNullsEverTests
             .OrderBy(static name => name, StringComparer.Ordinal)];
 
         Assert.Equal(
-            [nameof(IABConnectFeed.ReadDocumentAsync), nameof(IABConnectFeed.ReadPublicationAsync)],
+            [
+                nameof(IABConnectFeed.ReadDocumentAsync),
+                nameof(IABConnectFeed.ReadHeadSequenceAsync),
+                nameof(IABConnectFeed.ReadPublicationAsync),
+            ],
             nullableMethods);
     }
 
@@ -172,7 +178,7 @@ public sealed class NoNullsEverTests
             .OrderBy(static name => name, StringComparer.Ordinal)];
 
         Assert.Equal(declared, covered);
-        Assert.Equal(15, declared.Length);
+        Assert.Equal(16, declared.Length);
     }
 
     /// <summary>Every method name driven by the data-driven test.</summary>
@@ -187,6 +193,7 @@ public sealed class NoNullsEverTests
         yield return [nameof(IABConnectClient.GetPublicationFacetAsync)];
         yield return [nameof(IABConnectClient.GetDocumentFacetAsync)];
         yield return [nameof(IABConnectClient.GetSectionFacetAsync)];
+        yield return [nameof(IABConnectFeed.ReadHeadSequenceAsync)];
         yield return [nameof(IABConnectFeed.ReadEventsAsync)];
         yield return [nameof(IABConnectFeed.ReadEventPagesAsync)];
         yield return [nameof(IABConnectFeed.ReadDocumentSnapshotAsync)];
@@ -244,6 +251,11 @@ public sealed class NoNullsEverTests
             case nameof(IABConnectClient.GetSectionFacetAsync):
                 harness.Handler.EnqueueOk(FacetBody(ABFacetNames.Sections));
                 return await harness.Client.GetSectionFacetAsync().ConfigureAwait(false);
+
+            case nameof(IABConnectFeed.ReadHeadSequenceAsync):
+                harness.Handler.EnqueueOk(OneEventPage);
+                return await harness.Feed.ReadHeadSequenceAsync().ConfigureAwait(false)
+                    ?? throw new InvalidOperationException("The feed-head probe returned null.");
 
             case nameof(IABConnectFeed.ReadEventsAsync):
                 harness.Handler.EnqueueOk(EmptyEventsPage);

@@ -90,10 +90,12 @@ public static partial class ABQueryStringBuilder
 
     /// <summary>Renders an events query into a relative request URI and its request context.</summary>
     /// <remarks>
-    /// The emitted query always carries <c>sort[events]=seq</c>. AB Connect orders list results by
-    /// relevance by default, so ascending sequence order has to be requested on every single call; a
-    /// delta pull that omits it advances its watermark past events it never saw. The watermark itself
-    /// is emitted as <c>filter[events]=(seq GT n)</c>, and
+    /// The emitted query always carries an explicit sequence sort: <c>sort[events]=seq</c> ascending,
+    /// or <c>sort[events]=-seq</c> when <see cref="EventsQuery.Order"/> is
+    /// <see cref="EventSequenceOrder.Descending"/> (used only to read the head of the feed). AB
+    /// Connect orders list results by relevance by default, so the sort has to be requested on every
+    /// single call; a delta pull that omits ascending order advances its watermark past events it
+    /// never saw. The watermark itself is emitted as <c>filter[events]=(seq GT n)</c>, and
     /// <see cref="EventsQuery.StandardScope"/> is conjoined with it when present.
     /// </remarks>
     /// <param name="query">The query to render.</param>
@@ -113,11 +115,13 @@ public static partial class ABQueryStringBuilder
             EventsScope,
             $"{nameof(EventFieldSet)}.{nameof(EventFieldSet.Full)}");
 
+        string sortPrefix = query.Order == EventSequenceOrder.Descending ? "-" : string.Empty;
+
         string[] parameters =
         [
             $"fields[{EventsScope}]={RenderTokens(query.Fields.Fields, nameof(query))}",
             $"filter[{EventsScope}]={Uri.EscapeDataString(RenderEventsFilter(query, nameof(query)))}",
-            $"sort[{EventsScope}]={SequenceField}",
+            $"sort[{EventsScope}]={sortPrefix}{SequenceField}",
             RenderLimit(query.Page, options),
             RenderOffset(query.Page),
         ];

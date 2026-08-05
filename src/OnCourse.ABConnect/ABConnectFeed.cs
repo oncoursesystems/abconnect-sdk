@@ -89,6 +89,23 @@ public sealed class ABConnectFeed : IABConnectFeed
         _logger = logger;
     }
 
+    /// <inheritdoc />
+    public async Task<long?> ReadHeadSequenceAsync(CancellationToken cancellationToken = default)
+    {
+        // The head is the newest event, so sort descending and take a single row. This is one request
+        // that never walks the feed and never touches the ascending traversal's ordering guards.
+        EventsQuery query = new()
+        {
+            AfterSequence = 0,
+            Order = EventSequenceOrder.Descending,
+            Fields = EventFieldSet.Of("seq", "date_utc"),
+            Page = new PageRequest(0, 1),
+        };
+
+        ABPage<ABEvent> page = await _client.GetEventsAsync(query, cancellationToken).ConfigureAwait(false);
+        return page.Data.Count > 0 ? page.Data[0].Attributes?.Seq : null;
+    }
+
     /// <summary>
     /// Reads all events with a sequence strictly greater than the watermark, in ascending sequence
     /// order, buffered into a single result.
