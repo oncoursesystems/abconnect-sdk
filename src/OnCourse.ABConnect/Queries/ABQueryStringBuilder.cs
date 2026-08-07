@@ -38,7 +38,16 @@ public static partial class ABQueryStringBuilder
     /// <summary>The AB Connect resource path for change events.</summary>
     public const string EventsResource = "events";
 
-    /// <summary>The AB Connect query parameter that requests a facet summary instead of rows.</summary>
+    /// <summary>
+    /// The AB Connect query parameter that requests a facet's values (its <c>details[]</c>) instead of
+    /// rows. This is what enumerates the distinct authorities, publications, documents, and sections.
+    /// </summary>
+    public const string FacetParameter = "facet";
+
+    /// <summary>
+    /// The AB Connect query parameter that requests facet summary counts only, with no
+    /// <c>details[]</c>. Used solely for the throttled wildcard discovery request (<c>facet_summary=*</c>).
+    /// </summary>
     public const string FacetSummaryParameter = "facet_summary";
 
     private const string StandardsScope = "standards";
@@ -131,12 +140,15 @@ public static partial class ABQueryStringBuilder
 
     /// <summary>Renders a facet query into a relative request URI and its request context.</summary>
     /// <remarks>
-    /// A facet request is a standards request with <c>limit=0</c> and a <c>facet_summary</c>
-    /// parameter, and it is issued exactly once: AB Connect does not support paging of facet data, so
-    /// there is no offset to advance and no second call to make. No <c>status</c> term is emitted,
-    /// because <see cref="FacetQuery{TValue}"/> does not model a status scope; AB Connect's own
-    /// default therefore applies and the facet is computed over standards that are not deleted, which
-    /// is what a caller enumerating currently published documents, publications, and sections wants.
+    /// A facet request is a standards request with <c>limit=0</c>, issued exactly once: AB Connect does
+    /// not support paging of facet data, so there is no offset to advance and no second call to make. A
+    /// named facet emits <c>facet=</c><see cref="FacetQuery{TValue}.FacetName"/>, which returns the
+    /// facet's values under <c>meta.facets[].details[]</c>; the summary-only <c>facet_summary</c> form
+    /// carries counts but no values and is reserved for the wildcard discovery request. No
+    /// <c>status</c> term is emitted, because <see cref="FacetQuery{TValue}"/> does not model a status
+    /// scope; AB Connect's own default therefore applies and the facet is computed over standards that
+    /// are not deleted, which is what a caller enumerating currently published documents, publications,
+    /// and sections wants.
     /// </remarks>
     /// <typeparam name="TValue">The detail type each facet value deserializes into.</typeparam>
     /// <param name="query">The query to render.</param>
@@ -158,9 +170,12 @@ public static partial class ABQueryStringBuilder
                 $"A facet summary of '{StandardFieldSet.WildcardToken}' requests every facet AB Connect knows about and is throttled to two requests per second. Set {ABConnectOptions.SectionName}:{nameof(ABConnectOptions.AllowWildcardFields)} to true to permit it, which is intended for discovery only.");
         }
 
+        // A named facet must use facet= to return its values (details[]); facet_summary= carries only
+        // counts. The wildcard discovery token stays on facet_summary=*, which is the throttled form.
+        var facetParameter = isWildcard ? FacetSummaryParameter : FacetParameter;
         List<string> parameters =
         [
-            $"{FacetSummaryParameter}={facetName}",
+            $"{facetParameter}={facetName}",
         ];
 
         StandardsFilter filter = query.Filter ?? StandardsFilter.None;

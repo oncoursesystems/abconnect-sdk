@@ -4,10 +4,10 @@ namespace OnCourse.ABConnect.Queries;
 /// A request for the values of one facet on the standards endpoint.
 /// </summary>
 /// <remarks>
-/// A facet query always emits <c>limit=0</c> and <c>facet_summary=</c><see cref="FacetName"/>, so it
-/// returns facet values and no standards. AB Connect does not support paging of facet data, and
-/// truncates a facet with more than 10,000 values, which is why the result exposes both the reported
-/// total and the returned values.
+/// A facet query always emits <c>limit=0</c> and <c>facet=</c><see cref="FacetName"/>, so it returns
+/// the facet's values (its <c>details[]</c>) and no standards. AB Connect does not support paging of
+/// facet data, and truncates a facet with more than 10,000 values, which is why the result exposes
+/// both the reported total and the returned values.
 /// </remarks>
 /// <typeparam name="TValue">The detail type each facet value deserializes into.</typeparam>
 public sealed record FacetQuery<TValue>
