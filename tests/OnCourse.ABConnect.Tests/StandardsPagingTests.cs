@@ -67,6 +67,76 @@ public sealed class StandardsPagingTests
     }
 
     [Fact]
+    public async Task ReadStandardsByGuidsReturnsOnlyTheServedRowsInOneBatchedRequest()
+    {
+        ABConnectOptions options = new();
+        FakeABConnectClient client = new(options);
+        ABConnectFeed feed = CreateFeed(client, options);
+
+        string present1 = RowGuid(1);
+        string present2 = RowGuid(2);
+        string absent = RowGuid(3);
+
+        // The vendor serves the two it still licenses and is silent on the third. That silence is the
+        // answer the leftover reconciliation wants: the absent GUID is one AB no longer serves.
+        client.OnGetStandards = (query, call) => FakeABConnectClient.StandardsPage(
+            [FakeABConnectClient.StandardWithGuid(present1), FakeABConnectClient.StandardWithGuid(present2)],
+            reportedCount: 2);
+
+        IReadOnlyList<Standard> rows = await feed.ReadStandardsByGuidsAsync([present1, present2, absent]);
+
+        Assert.Equal([present1, present2], rows.Select(r => r.Attributes!.Guid));
+
+        // One request, carrying the IN term for the whole batch, the active-and-deleted status so a
+        // deletion is distinguishable from an absence, and the explicit snapshot field set rather than
+        // the throttled wildcard.
+        Assert.Single(client.StandardsRequestUris);
+        string filter = FakeABConnectClient.DecodedParameterValue(client.StandardsRequestUris[0], "filter[standards]");
+        Assert.Contains($"guid IN ('{present1}','{present2}','{absent}')", filter, StringComparison.Ordinal);
+        Assert.Contains("status IN ('active','deleted')", filter, StringComparison.Ordinal);
+        Assert.DoesNotContain("fields[standards]=*", client.StandardsRequestUris[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ReadStandardsByGuidsDrainsEveryPageWhenTheVendorAppliesASmallerLimit()
+    {
+        ABConnectOptions options = new();
+        FakeABConnectClient client = new(options);
+        ABConnectFeed feed = CreateFeed(client, options);
+
+        string[] guids = [RowGuid(1), RowGuid(2), RowGuid(3)];
+
+        // The vendor echoes limit=2, so three served rows span two pages; the read drains both rather
+        // than stopping at the first full page.
+        client.OnGetStandards = (query, call) => call switch
+        {
+            1 => FakeABConnectClient.StandardsPage(
+                [FakeABConnectClient.StandardWithGuid(guids[0]), FakeABConnectClient.StandardWithGuid(guids[1])],
+                reportedCount: 3, limit: 2, offset: 0),
+            _ => FakeABConnectClient.StandardsPage(
+                [FakeABConnectClient.StandardWithGuid(guids[2])],
+                reportedCount: 3, limit: 2, offset: 2),
+        };
+
+        IReadOnlyList<Standard> rows = await feed.ReadStandardsByGuidsAsync(guids);
+
+        Assert.Equal(guids, rows.Select(r => r.Attributes!.Guid));
+        Assert.Equal(2, client.StandardsRequestUris.Count);
+    }
+
+    [Fact]
+    public async Task ReadStandardsByGuidsRejectsAMalformedSetBeforeIssuingAnyRequest()
+    {
+        ABConnectOptions options = new();
+        FakeABConnectClient client = new(options);
+        ABConnectFeed feed = CreateFeed(client, options);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => feed.ReadStandardsByGuidsAsync([]));
+        await Assert.ThrowsAsync<ArgumentException>(() => feed.ReadStandardsByGuidsAsync(["not-a-guid"]));
+        Assert.Empty(client.StandardsRequestUris);
+    }
+
+    [Fact]
     public async Task ADuplicateGuidAcrossPagesThrowsABConnectPagingException()
     {
         ABConnectOptions options = new();

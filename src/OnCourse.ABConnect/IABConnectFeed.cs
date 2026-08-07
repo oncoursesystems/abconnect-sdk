@@ -1,5 +1,6 @@
 using OnCourse.ABConnect.Feed;
 using OnCourse.ABConnect.Models;
+using OnCourse.ABConnect.Queries;
 
 namespace OnCourse.ABConnect;
 
@@ -159,5 +160,40 @@ public interface IABConnectFeed
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<StandardPublication?> ReadPublicationAsync(
         string publicationGuid,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reads every standard the account can see whose own GUID is in the given set, in one batched
+    /// query rather than one lookup per GUID.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the batched-probe read. A GUID the account no longer licenses is simply absent from
+    /// the result, so the returned list may be shorter than the set asked for, and that shortfall is
+    /// the answer, not a failure: those GUIDs are the ones the vendor no longer serves. Because a
+    /// standard's GUID is unique and the set is capped at <see cref="StandardsFilter.MaxGuidSetSize"/>,
+    /// the whole batch fits inside the vendor's page cap, and the read still drains every page for
+    /// robustness before returning.
+    /// </para>
+    /// <para>
+    /// Deleted standards are in scope by default so a reconciliation can tell "deleted" apart from
+    /// "no longer served"; pass a different <paramref name="status"/> to narrow it.
+    /// </para>
+    /// </remarks>
+    /// <param name="standardGuids">The standard GUIDs to fetch. At most <see cref="StandardsFilter.MaxGuidSetSize"/>.</param>
+    /// <param name="fields">The fields to request, or null for the full mirror set.</param>
+    /// <param name="status">The lifecycle states to include. Defaults to active and deleted.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    /// <returns>
+    /// The matched standards. Never null; an empty list means the service answered and served none of
+    /// the requested GUIDs, per the value-or-throw guarantee.
+    /// </returns>
+    /// <exception cref="ABConnectRequestException">Any page failed.</exception>
+    /// <exception cref="ArgumentException">The set is empty, too large, or contains a malformed GUID.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task<IReadOnlyList<Standard>> ReadStandardsByGuidsAsync(
+        IReadOnlyCollection<string> standardGuids,
+        StandardFieldSet? fields = null,
+        StandardStatusScope status = StandardStatusScope.ActiveAndDeleted,
         CancellationToken cancellationToken = default);
 }

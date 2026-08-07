@@ -313,6 +313,76 @@ public sealed class QueryBuildingTests
             FakeABConnectClient.DecodedParameterValue(requestUri, "filter[standards]"));
     }
 
+    [Fact]
+    public void AGuidSetFilterRendersAsASingleInTermWithTheStatusTermLast()
+    {
+        StandardsFilter filter = StandardsFilter.ByStandardGuids([DocumentGuid, AuthorityGuid]);
+
+        (string requestUri, _) = ABQueryStringBuilder.Build(
+            new StandardsQuery
+            {
+                Filter = filter,
+                Fields = StandardFieldSet.Identity,
+                Status = StandardStatusScope.ActiveAndDeleted,
+            },
+            new ABConnectOptions());
+
+        // The GUIDs render inside one IN list, in the order given, with the unconditional status term
+        // last, exactly as AB Connect's own filter examples spell an IN clause.
+        Assert.Equal(
+            $"((guid IN ('{DocumentGuid}','{AuthorityGuid}')) AND (status IN ('active','deleted')))",
+            FakeABConnectClient.DecodedParameterValue(requestUri, "filter[standards]"));
+
+        // Escaped exactly once: "%25" is the signature of a double-encoded expression.
+        Assert.DoesNotContain("%25", requestUri, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AGuidSetFilterValidatesEveryMemberAndBoundsTheSetSize()
+    {
+        Assert.Throws<ArgumentNullException>(() => StandardsFilter.ByStandardGuids(null!));
+        Assert.Throws<ArgumentException>(() => StandardsFilter.ByStandardGuids([]));
+        Assert.Throws<ArgumentException>(() => StandardsFilter.ByStandardGuids(["not-a-guid"]));
+
+        // A hostile value anywhere in the set is rejected, so no IN list can carry a stray quote.
+        Assert.Throws<ArgumentException>(
+            () => StandardsFilter.ByStandardGuids([DocumentGuid, "9D85340C-B0E5-4C0A-9A1B-2C3D4E5F6A7B' OR 1 EQ 1"]));
+
+        // The cap is the page size: at the cap is accepted, one over is rejected, so a batch can never
+        // outgrow the single page it is meant to fit in.
+        string[] atCap = [.. Enumerable.Range(0, StandardsFilter.MaxGuidSetSize).Select(RowGuid)];
+        StandardsFilter ok = StandardsFilter.ByStandardGuids(atCap);
+        Assert.Single(ok.SetTerms);
+        Assert.Equal(StandardsFilter.MaxGuidSetSize, ok.SetTerms[0].Values.Count);
+
+        string[] overCap = [.. Enumerable.Range(0, StandardsFilter.MaxGuidSetSize + 1).Select(RowGuid)];
+        Assert.Throws<ArgumentException>(() => StandardsFilter.ByStandardGuids(overCap));
+    }
+
+    [Fact]
+    public void GuidSetFiltersCompareByValueAndComposeWithAnd()
+    {
+        Assert.Equal(
+            StandardsFilter.ByStandardGuids([DocumentGuid, AuthorityGuid]),
+            StandardsFilter.ByStandardGuids([DocumentGuid, AuthorityGuid]));
+        Assert.NotEqual(
+            StandardsFilter.ByStandardGuids([DocumentGuid]),
+            StandardsFilter.ByStandardGuids([AuthorityGuid]));
+
+        // An equality term and a set term combine into one conjunction, each kept in its own list.
+        StandardsFilter combined = StandardsFilter.ByDocument(DocumentGuid)
+            .And(StandardsFilter.ByStandardGuids([AuthorityGuid]));
+        Assert.Single(combined.Terms);
+        Assert.Single(combined.SetTerms);
+        Assert.False(combined.IsEmpty);
+    }
+
+    /// <summary>A distinct, well-formed AB Connect GUID for row number <paramref name="ordinal"/>.</summary>
+    private static string RowGuid(int ordinal)
+        => string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $"9D85340C-B0E5-4C0A-9A1B-{ordinal:D12}");
+
     [Theory]
     [InlineData(StandardStatusScope.Active, "(status EQ 'active')")]
     [InlineData(StandardStatusScope.Deleted, "(status EQ 'deleted')")]

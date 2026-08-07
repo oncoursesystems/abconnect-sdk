@@ -326,6 +326,22 @@ public static partial class ABQueryStringBuilder
             string value = StandardsFilter.ValidateGuid(term.Value, parameterName);
             terms.Add($"({field} EQ '{value}')");
         }
+
+        foreach (StandardsFilterSetTerm term in filter.SetTerms)
+        {
+            string field = ValidateFilterPath(term.Field, parameterName);
+            if (term.Values.Count == 0)
+            {
+                throw new ArgumentException(
+                    "A GUID set term must carry at least one GUID.",
+                    parameterName);
+            }
+
+            string quoted = string.Join(
+                ',',
+                term.Values.Select(value => $"'{StandardsFilter.ValidateGuid(value, parameterName)}'"));
+            terms.Add($"({field} IN ({quoted}))");
+        }
     }
 
     /// <summary>

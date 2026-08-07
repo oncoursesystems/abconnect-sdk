@@ -14,7 +14,8 @@
 
   <PropertyGroup>
     <PackageId>OnCourse.ABConnect</PackageId>
-    <Version>3.2.0</Version>
+    <!-- No static version: the release workflow packs with -p:PackageVersion from the release tag
+         (.github/workflows/release.yml), which is the single source of truth for the published version. -->
     <Company>OnCourse Systems For Education</Company>
     <Authors>OnCourse Systems For Education</Authors>
     <Product>Academic Benchmarks SDK for .NET</Product>

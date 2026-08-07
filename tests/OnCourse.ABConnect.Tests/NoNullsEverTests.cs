@@ -178,7 +178,7 @@ public sealed class NoNullsEverTests
             .OrderBy(static name => name, StringComparer.Ordinal)];
 
         Assert.Equal(declared, covered);
-        Assert.Equal(16, declared.Length);
+        Assert.Equal(17, declared.Length);
     }
 
     /// <summary>Every method name driven by the data-driven test.</summary>
@@ -200,6 +200,7 @@ public sealed class NoNullsEverTests
         yield return [nameof(IABConnectFeed.ReadDocumentPagesAsync)];
         yield return [nameof(IABConnectFeed.ReadDocumentAsync)];
         yield return [nameof(IABConnectFeed.ReadPublicationAsync)];
+        yield return [nameof(IABConnectFeed.ReadStandardsByGuidsAsync)];
     }
 
     /// <summary>
@@ -285,6 +286,10 @@ public sealed class NoNullsEverTests
                 harness.Handler.EnqueueOk(ProbeRow);
                 return await harness.Feed.ReadPublicationAsync(PublicationGuid).ConfigureAwait(false)
                     ?? throw new InvalidOperationException("The publication probe returned null.");
+
+            case nameof(IABConnectFeed.ReadStandardsByGuidsAsync):
+                harness.Handler.EnqueueOk(OneStandardPage);
+                return await harness.Feed.ReadStandardsByGuidsAsync([StandardGuid]).ConfigureAwait(false);
 
             default:
                 throw new InvalidOperationException($"No case is defined for method '{methodName}'.");

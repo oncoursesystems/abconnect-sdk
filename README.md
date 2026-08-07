@@ -380,6 +380,46 @@ Guarantees:
   shortfall check, since that is only evaluable once the whole document has been read. That is the
   trade for streaming.
 
+### Standards by GUID set: one batched request instead of one lookup each
+
+When you already hold a set of standard GUIDs and want the standards behind them, ask for the whole
+batch in a single request rather than probing each GUID on its own. A GUID the account no longer
+licenses is simply absent from the result, so a shorter list than you asked for is the answer, not an
+error: those are the GUIDs the vendor no longer serves.
+
+```csharp
+using OnCourse.ABConnect;
+using OnCourse.ABConnect.Models;
+using OnCourse.ABConnect.Queries;
+
+internal static class GuidSetRead
+{
+    public static async Task<int> RecoverAsync(
+        IABConnectFeed feed,
+        IReadOnlyCollection<string> standardGuids,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<Standard> served = await feed.ReadStandardsByGuidsAsync(
+            standardGuids,
+            cancellationToken: cancellationToken);
+
+        Console.WriteLine($"{served.Count} of {standardGuids.Count} GUIDs are still served");
+        return served.Count;
+    }
+}
+```
+
+Guarantees:
+
+- The batch is capped at `StandardsFilter.MaxGuidSetSize` (100, the page size), so the whole set fits
+  one page. A larger set throws `ArgumentException`; batch it and call once per batch.
+- Every GUID is validated before any request is issued, so a malformed value fails fast and no stray
+  value can reach the `guid IN (...)` filter.
+- The default status scope is `ActiveAndDeleted`, so a deleted standard is distinguishable from one
+  that is simply no longer served. Pass a different scope to narrow or widen it.
+- The read still drains every page if the service applies a smaller limit than the batch, so the
+  returned list is complete for the GUIDs the account can see.
+
 ### Facets are never paged
 
 A facet is exactly one request with `limit=0`. AB Connect truncates facet values at 10,000 and does
