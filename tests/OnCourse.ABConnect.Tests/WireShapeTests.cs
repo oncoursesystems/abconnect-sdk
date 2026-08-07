@@ -334,6 +334,34 @@ public sealed class WireShapeTests
     }
 
     /// <summary>
+    /// AB Connect sends the document facet's <c>adopt_year</c> as a bare JSON number, even though the
+    /// same field is a string on a standard's embedded document. The document facet value must still
+    /// deserialize, with the year normalized to its string form, and a string or null year must keep
+    /// working. This is the shape that failed live before the year converter existed.
+    /// </summary>
+    [Fact]
+    public void ADocumentFacetValueAcceptsANumericStringOrNullAdoptYear()
+    {
+        const string json = """
+        {"meta":{"count":3,"facets":[{"facet":"document","count":3,"details":[
+          {"count":10,"data":{"guid":"G1","adopt_year":2016,"descr":"Doc One"}},
+          {"count":5,"data":{"guid":"G2","adopt_year":"2020","descr":"Doc Two"}},
+          {"count":1,"data":{"guid":"G3","adopt_year":null,"descr":"Doc Three"}}
+        ]}]}}
+        """;
+
+        ABFacetEnvelope envelope = Deserialize<ABFacetEnvelope>(json);
+        ABFacet<DocumentSummary> facet = envelope.ToFacet<DocumentSummary>("document", Options);
+
+        Assert.Equal(3, facet.Values.Count);
+        Assert.Equal("2016", facet.Values[0].Value.AdoptYear);   // numeric on the wire
+        Assert.Equal("G1", facet.Values[0].Value.Guid);
+        Assert.Equal("Doc One", facet.Values[0].Value.Description);
+        Assert.Equal("2020", facet.Values[1].Value.AdoptYear);   // string on the wire
+        Assert.Null(facet.Values[2].Value.AdoptYear);            // null on the wire
+    }
+
+    /// <summary>
     /// A missing facet name is a caller mistake, not an empty facet. Null surfaces as
     /// <see cref="ArgumentNullException"/> and blank as <see cref="ArgumentException"/>, both of which
     /// are argument failures rather than a response the caller could act on.

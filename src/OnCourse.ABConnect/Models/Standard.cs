@@ -258,23 +258,31 @@ public sealed record StandardDocument
     [JsonPropertyName("descr")]
     public string? Description { get; init; }
 
-    /// <summary>The year the document was adopted. A string, because AB Connect never documents it as numeric.</summary>
+    /// <summary>
+    /// The year the document was adopted. Kept as a string, but AB Connect sends it as a bare number
+    /// inside facet details, so the converter accepts a JSON string or number.
+    /// </summary>
+    [JsonConverter(typeof(ABConnectYearConverter))]
     public string? AdoptYear { get; init; }
 
-    /// <summary>The year the document was revised. A string, for the reason given on <see cref="AdoptYear"/>.</summary>
+    /// <summary>The year the document was revised. String-or-number, for the reason given on <see cref="AdoptYear"/>.</summary>
+    [JsonConverter(typeof(ABConnectYearConverter))]
     public string? RevisionYear { get; init; }
 
-    /// <summary>The year the document takes effect. A string, for the reason given on <see cref="AdoptYear"/>.</summary>
+    /// <summary>The year the document takes effect. String-or-number, for the reason given on <see cref="AdoptYear"/>.</summary>
+    [JsonConverter(typeof(ABConnectYearConverter))]
     public string? ImplementationYear { get; init; }
 
-    /// <summary>The year the document is assessed against. A string, for the reason given on <see cref="AdoptYear"/>.</summary>
+    /// <summary>The year the document is assessed against. String-or-number, for the reason given on <see cref="AdoptYear"/>.</summary>
+    [JsonConverter(typeof(ABConnectYearConverter))]
     public string? AssessmentYear { get; init; }
 
     /// <summary>
     /// The document's obsolete year. AB Connect defines no semantics for this field anywhere in its
     /// documentation, so no consumer should infer retirement, deprecation, or any other lifecycle
-    /// state from it. A string, for the reason given on <see cref="AdoptYear"/>.
+    /// state from it. String-or-number, for the reason given on <see cref="AdoptYear"/>.
     /// </summary>
+    [JsonConverter(typeof(ABConnectYearConverter))]
     public string? ObsoleteYear { get; init; }
 
     /// <summary>The publisher's URL for the document.</summary>
@@ -389,7 +397,7 @@ public sealed record Publication(
 /// <param name="Description">The document's description, which is its title.</param>
 public sealed record DocumentSummary(
     string? Guid,
-    string? AdoptYear,
+    [property: JsonConverter(typeof(ABConnectYearConverter))] string? AdoptYear,
     [property: JsonPropertyName("descr")] string? Description);
 
 /// <summary>
