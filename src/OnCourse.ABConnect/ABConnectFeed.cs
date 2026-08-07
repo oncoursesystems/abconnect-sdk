@@ -468,6 +468,56 @@ public sealed class ABConnectFeed : IABConnectFeed
                 1);
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Standard>> ReadStandardsByGuidsAsync(
+        IReadOnlyCollection<string> standardGuids,
+        StandardFieldSet? fields = null,
+        StandardStatusScope status = StandardStatusScope.ActiveAndDeleted,
+        CancellationToken cancellationToken = default)
+    {
+        // Validation (non-null, non-empty, size cap, per-GUID shape) lives in the filter's named
+        // constructor, so a malformed set is rejected before any request is issued.
+        StandardsFilter filter = StandardsFilter.ByStandardGuids(standardGuids);
+        StandardFieldSet effectiveFields = fields ?? StandardFieldSet.Snapshot;
+
+        List<Standard> matched = [];
+        int offset = 0;
+
+        while (true)
+        {
+            StandardsQuery query = new()
+            {
+                Filter = filter,
+                Fields = effectiveFields,
+                Sort = StandardSort.Default,
+                Page = new PageRequest(offset, PageRequest.MaxLimit),
+                Status = status,
+            };
+
+            ABPage<Standard> page = await _client.GetStandardsAsync(query, cancellationToken)
+                .ConfigureAwait(false);
+
+            // The vendor echoes the limit it actually applied; the offset step follows that echo.
+            int appliedLimit = page.Meta.Limit > 0 ? page.Meta.Limit : PageRequest.MaxLimit;
+            IReadOnlyList<Standard> rows = page.Data;
+
+            if (rows.Count > 0)
+            {
+                matched.AddRange(rows);
+            }
+
+            // A short page is the last page. A GUID set is capped at the page size, so this almost
+            // always returns after one request; the loop only continues if the vendor applied a limit
+            // smaller than the batch, in which case it drains the remaining pages.
+            if (rows.Count < appliedLimit)
+            {
+                return matched;
+            }
+
+            offset += appliedLimit;
+        }
+    }
+
     /// <summary>
     /// The shared events traversal. Both public event methods run this walk; the buffering one
     /// simply concatenates the pages and reads the shared <paramref name="state"/> afterwards.

@@ -15,6 +15,44 @@ namespace OnCourse.ABConnect.Queries;
 public sealed record StandardsFilterTerm(string Field, string Value);
 
 /// <summary>
+/// One set-membership term of a standards filter: a dotted AB Connect property path and the GUIDs it
+/// may match. Renders as <c>(field IN ('g1','g2', ...))</c>.
+/// </summary>
+/// <remarks>
+/// This is how a batched GUID probe asks for many standards in one request instead of one lookup
+/// each. Every GUID is validated when the term is created, exactly as an equality term's value is, so
+/// the rendered <c>IN</c> list can never carry an unvalidated fragment. The synthesized record
+/// equality would compare <see cref="Values"/> by reference, so <see cref="Equals(StandardsFilterSetTerm)"/>
+/// compares the GUIDs as values instead.
+/// </remarks>
+/// <param name="Field">The dotted property path, for example <c>guid</c>.</param>
+/// <param name="Values">The GUIDs the property may equal, in order. Already validated and non-empty.</param>
+public sealed record StandardsFilterSetTerm(string Field, IReadOnlyList<string> Values)
+{
+    /// <summary>Compares two set terms by field and by their GUIDs, in order.</summary>
+    /// <param name="other">The term to compare with.</param>
+    /// <returns><see langword="true"/> when both carry the same field and the same GUIDs in the same order.</returns>
+    public bool Equals(StandardsFilterSetTerm? other)
+        => other is not null
+           && (ReferenceEquals(this, other)
+               || (string.Equals(Field, other.Field, StringComparison.Ordinal)
+                   && Values.SequenceEqual(other.Values, StringComparer.Ordinal)));
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+        hash.Add(Field, StringComparer.Ordinal);
+        foreach (string value in Values)
+        {
+            hash.Add(value, StringComparer.Ordinal);
+        }
+
+        return hash.ToHashCode();
+    }
+}
+
+/// <summary>
 /// An immutable conjunction of standards filter terms, built only through named constructors so
 /// that no caller ever concatenates a filter expression by hand.
 /// </summary>
@@ -38,19 +76,42 @@ public sealed partial record StandardsFilter
     /// <summary>The AB Connect property path for a standard's section.</summary>
     public const string SectionGuidField = "section.guid";
 
-    private static readonly StandardsFilter EmptyFilter = new([]);
-
-    private StandardsFilter(IReadOnlyList<StandardsFilterTerm> terms) => Terms = terms;
+    /// <summary>The AB Connect property path for a standard's own GUID.</summary>
+    public const string StandardGuidField = "guid";
 
     /// <summary>
-    /// The terms of the filter, combined with logical AND. Never null; empty for
+    /// The largest GUID set a single <c>IN</c> term may carry. The vendor caps a page at 100 objects,
+    /// and a standard's GUID is unique, so a set of at most 100 GUIDs matches at most 100 rows, which
+    /// fits one page. It also keeps the rendered request line well under the API gateway's line-length
+    /// limit. A caller with more GUIDs than this batches them.
+    /// </summary>
+    public const int MaxGuidSetSize = 100;
+
+    private static readonly StandardsFilter EmptyFilter = new([], []);
+
+    private StandardsFilter(
+        IReadOnlyList<StandardsFilterTerm> terms,
+        IReadOnlyList<StandardsFilterSetTerm> setTerms)
+    {
+        Terms = terms;
+        SetTerms = setTerms;
+    }
+
+    /// <summary>
+    /// The equality terms of the filter, combined with logical AND. Never null; empty for
     /// <see cref="None"/>. The query builder renders these into a single
     /// <c>filter[standards]</c> expression.
     /// </summary>
     public IReadOnlyList<StandardsFilterTerm> Terms { get; }
 
+    /// <summary>
+    /// The set-membership terms of the filter, combined with logical AND alongside <see cref="Terms"/>.
+    /// Never null; empty unless the filter was built with <see cref="ByStandardGuids"/>.
+    /// </summary>
+    public IReadOnlyList<StandardsFilterSetTerm> SetTerms { get; }
+
     /// <summary>Whether this filter constrains nothing.</summary>
-    public bool IsEmpty => Terms.Count == 0;
+    public bool IsEmpty => Terms.Count == 0 && SetTerms.Count == 0;
 
     /// <summary>The filter that constrains nothing, so the query matches every licensed standard.</summary>
     public static StandardsFilter None => EmptyFilter;
@@ -84,6 +145,51 @@ public sealed partial record StandardsFilter
         => Single(SectionGuidField, sectionGuid, nameof(sectionGuid));
 
     /// <summary>
+    /// Restricts the query to standards whose own GUID is in the given set, rendered as a single
+    /// <c>guid IN (...)</c> term.
+    /// </summary>
+    /// <remarks>
+    /// This is the batched-probe filter: one request answers for a whole set of GUIDs instead of one
+    /// lookup each. A GUID the vendor no longer serves is simply absent from the result, which is the
+    /// fact a resync's leftover reconciliation wants to record, so absence is not an error here.
+    /// </remarks>
+    /// <param name="standardGuids">The AB Connect GUIDs to match. Order is preserved.</param>
+    /// <returns>A filter with a single <c>guid</c> set term.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="standardGuids"/> is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// The set is empty, holds more than <see cref="MaxGuidSetSize"/> GUIDs, or contains a value that
+    /// is not a well-formed GUID.
+    /// </exception>
+    public static StandardsFilter ByStandardGuids(IEnumerable<string> standardGuids)
+    {
+        ArgumentNullException.ThrowIfNull(standardGuids);
+
+        List<string> guids = standardGuids as List<string> ?? [.. standardGuids];
+        if (guids.Count == 0)
+        {
+            throw new ArgumentException(
+                "A GUID set filter must contain at least one GUID.",
+                nameof(standardGuids));
+        }
+
+        if (guids.Count > MaxGuidSetSize)
+        {
+            throw new ArgumentException(
+                $"A GUID set filter carries at most {MaxGuidSetSize} GUIDs, but {guids.Count} were " +
+                "supplied. Batch the GUIDs and issue one filter per batch.",
+                nameof(standardGuids));
+        }
+
+        string[] validated = new string[guids.Count];
+        for (int index = 0; index < guids.Count; index++)
+        {
+            validated[index] = ValidateGuid(guids[index], nameof(standardGuids));
+        }
+
+        return new StandardsFilter([], [new StandardsFilterSetTerm(StandardGuidField, validated)]);
+    }
+
+    /// <summary>
     /// Combines this filter with another using logical AND. Neither operand is modified.
     /// </summary>
     /// <param name="other">The filter to combine with. <see cref="None"/> is a no-op.</param>
@@ -106,7 +212,12 @@ public sealed partial record StandardsFilter
         List<StandardsFilterTerm> combined = new(Terms.Count + other.Terms.Count);
         combined.AddRange(Terms);
         combined.AddRange(other.Terms);
-        return new StandardsFilter(combined);
+
+        List<StandardsFilterSetTerm> combinedSets = new(SetTerms.Count + other.SetTerms.Count);
+        combinedSets.AddRange(SetTerms);
+        combinedSets.AddRange(other.SetTerms);
+
+        return new StandardsFilter(combined, combinedSets);
     }
 
     /// <summary>
@@ -131,7 +242,7 @@ public sealed partial record StandardsFilter
     }
 
     private static StandardsFilter Single(string field, string guid, string parameterName)
-        => new([new StandardsFilterTerm(field, ValidateGuid(guid, parameterName))]);
+        => new([new StandardsFilterTerm(field, ValidateGuid(guid, parameterName))], []);
 
     [GeneratedRegex("^[0-9A-Fa-f-]{32,36}$", RegexOptions.CultureInvariant)]
     private static partial Regex GuidPattern();
@@ -147,13 +258,20 @@ public sealed partial record StandardsFilter
     /// <param name="other">The instance to compare with.</param>
     /// <returns><see langword="true"/> when both carry the same contents in the same order.</returns>
     public bool Equals(StandardsFilter? other)
-        => other is not null && (ReferenceEquals(this, other) || Terms.SequenceEqual(other.Terms));
+        => other is not null
+           && (ReferenceEquals(this, other)
+               || (Terms.SequenceEqual(other.Terms) && SetTerms.SequenceEqual(other.SetTerms)));
 
     /// <inheritdoc />
     public override int GetHashCode()
     {
         HashCode hash = new();
         foreach (StandardsFilterTerm item in Terms)
+        {
+            hash.Add(item);
+        }
+
+        foreach (StandardsFilterSetTerm item in SetTerms)
         {
             hash.Add(item);
         }
