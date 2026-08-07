@@ -404,14 +404,15 @@ public sealed class QueryBuildingTests
     }
 
     [Fact]
-    public void AFacetQueryEmitsOnlyTheSummaryTheOptionalFilterAndLimitZero()
+    public void AFacetQueryEmitsTheFacetValuesTheOptionalFilterAndLimitZero()
     {
         (string plain, _) = ABQueryStringBuilder.Build(
             new FacetQuery<Publication> { FacetName = ABFacetNames.Publications },
             new ABConnectOptions());
 
-        // Section 6.3: exactly one request, no rows, nothing to page.
-        Assert.Equal("standards?facet_summary=document.publication&limit=0", plain);
+        // A named facet must use facet= (returns the values under details[]), not facet_summary=
+        // (counts only). Exactly one request, no rows, nothing to page.
+        Assert.Equal("standards?facet=document.publication&limit=0", plain);
 
         (string scoped, _) = ABQueryStringBuilder.Build(
             new FacetQuery<SectionSummary>
@@ -423,7 +424,7 @@ public sealed class QueryBuildingTests
 
         Assert.Equal(
             "standards" +
-            "?facet_summary=section" +
+            "?facet=section" +
             "&filter[standards]=%28document.publication.authorities.guid%20EQ%20%27" + AuthorityGuid + "%27%29" +
             "&limit=0",
             scoped);
