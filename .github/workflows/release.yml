@@ -50,7 +50,7 @@ jobs:
       # 8.0.4xx ship different analyzer versions. Letting CI resolve 8.0.x independently is how a build
       # passes on a developer machine and fails here on a rule neither of them chose.
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
